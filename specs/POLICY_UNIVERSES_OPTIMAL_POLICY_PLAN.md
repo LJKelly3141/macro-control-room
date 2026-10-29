@@ -5,7 +5,13 @@ date: 2026-10-28
 
 Plan for adding an optimal-policy benchmark to the game, so a class's policy can be compared
 both with doing nothing and with the best achievable policy. Model:
-`specs/POLICY_UNIVERSES_MODEL.md`. Nothing here is built yet.
+`specs/POLICY_UNIVERSES_MODEL.md`.
+
+**Status, 2026-10-28: built.** Steps 1 to 6 are done; the model write-up's "Optimal policy"
+section describes what shipped. Two things changed from this plan after a second review:
+the instrument costs are tuned to the welfare loss for each economy instead of set by hand
+(decision 2), and no policy, in the tail rounds and the benchmark, holds the real rate at
+neutral instead of the nominal rate at 3%.
 
 ## Goal
 

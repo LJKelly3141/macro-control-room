@@ -1,12 +1,14 @@
 ---
-title: "Policy Universes: the economic model"
+title: "Macro Control Room: the economic model"
 date: 2026-10-28
 ---
 
-The model behind the Policy Universes game (`apps/policy_universes/engine.js`), revised
-2026-10-28 in response to a referee-style critique: a static price-level picture, a
-real-interest-rate channel, expectations that are not assumed anchored, schools of thought
-as presets, and scoring tied to the Fed's dual mandate. Every number is illustrative.
+The model behind the Macro Control Room game (`engine.js`; the optimal-policy benchmarks are
+in `optimal.js`). The game began as "Policy Universes". Revised 2026-10-28 in response to two
+referee-style reviews: a static price-level picture, a real-interest-rate channel,
+expectations that are not assumed anchored, schools of thought as presets, scoring tied to
+the Fed's dual mandate, a no-policy benchmark that holds the real rate at neutral, events
+that fade, and an optimal-policy benchmark. Every number is illustrative.
 
 ## The curves (the static price-level AD/AS picture)
 
@@ -58,8 +60,14 @@ curve gives a slope near 0.5.
    worse than no policy in most cases, which is Friedman's point about lags but would leave
    the classroom with an autopilot that does not work.
 5. **Arrivals and expected policy.** Arriving policy shifts AD. A share $x$ of each policy's
-   effect on output is cancelled and shows up in prices instead (the "share of policy people
-   expect": rational expectations).
+   effect on output, in the round it arrives, is cancelled and shows up in prices instead (the
+   "share of policy people expect": rational expectations). Wages and prices are reset so that,
+   for that share, output stays where it would have been without the policy. This is the
+   policy-ineffectiveness idea, limited to the policy's direct effect: the higher prices raise
+   measured inflation and so expected inflation, and unless the central bank raises the nominal
+   rate to match, the real rate falls and output rises in later rounds. With $x = 1$ and the
+   rate held, a fully expected stimulus raises output from its second round on through that
+   channel alone.
 6. **The economy settles** where AD meets SRAS.
 7. **Measures.** Output gap $g = 100(Y - Y^*)/Y^*$; unemployment $u = \max(2,\ 5 - 0.5g)$
    (Okun's rule); inflation $\pi = 2 + 100(P_t/P_{t-1} - 1)$.
@@ -101,26 +109,96 @@ rises, so a boom or a slump feeds on itself.
 | Monetarist | 0.4 | 1 | 30% | 0.1 | 50 | off |
 | Real world | 0.10, then 0.5 from round 5 | 2 | 0% | 0.5 | 50 | off |
 
-## How the presets play (12 rounds, no policy / Taylor rule, checked 2026-10-28)
+What the labels mean, and what they do not:
 
-**Out of date.** This table predates the changes of 2026-10-28 (the Taylor rule's smoothing,
-Monetarist credibility 0.1, no policy as the neutral real rate, fading events) and is to be
-redone. Stars are out of 24.
+- **Keynesian**: slow wage adjustment, a multiplier of 2, no one sees policy coming.
+- **Neoclassical**: fast wage adjustment, a multiplier of 1, policy fully expected, a credible
+  central bank. Policy mostly changes prices.
+- **New Keynesian**: sticky but adjusting wages, partly expected policy, a credible central
+  bank following a Taylor rule.
+- **Monetarist**: the game has no money supply. The preset carries Friedman's view through
+  expectations that follow past inflation (credibility 0.1), so inflation that is allowed to
+  run keeps running, and no lasting trade-off between inflation and unemployment. The central
+  bank still sets an interest rate; Friedman's own prescription, a rule of steady money
+  growth, is not in the game.
+- **Real world**: the OpenStax rule of thumb, Keynesian in the short run (slow adjustment) and
+  neoclassical in the long run (fast adjustment from round 5).
+
+Credibility is a fixed setting for the whole game: it does not rise when the central bank
+holds inflation down or fall when it lets inflation run.
+
+## How the presets play (12 rounds, checked 2026-10-28)
+
+Welfare score, the share of the no-policy loss avoided, counted over the game plus the 4
+tail rounds: the Taylor-rule autopilot (monetary only) / the optimal-rule autopilot (both
+levers). Events fade at 90% a round; default welfare weights.
 
 | Event | Keynesian | Neoclassical | New Keynesian | Monetarist | Real world |
 |---|---|---|---|---|---|
-| Confidence collapses | Lose 3 / Win 11 | Win 19 / Win 19 | Win 15 / Win 18 | Lose 0 / Lose 0 | Win 10 / Win 14 |
-| Spending boom | Win 7 / Win 20 | Win 20 / Win 20 | Win 18 / Win 18 | Lose 5 / Lose 10 | Win 14 / Win 17 |
-| Oil spike | Win 13 / Win 18 | Win 21 / Win 20 | Win 21 / Win 16 | Lose 11 / Win 20 | Win 14 / Win 18 |
-| New technology | Win 24 / Win 24 | Win 23 / Win 24 | Win 24 / Win 24 | Lose 13 / Lose 15 | Win 24 / Win 24 |
+| Confidence collapses | +32% / +44% | +30% / +43% | +37% / +41% | −1% / +71% | +28% / +47% |
+| Spending boom | +36% / +43% | +25% / +41% | +36% / +37% | +34% / +69% | +31% / +48% |
+| Oil spike | +2% / +10% | −27% / +13% | −23% / +13% | +0% / +10% | +5% / +19% |
+| New technology | +35% / +68% | +28% / +33% | +35% / +29% | +36% / +87% | +28% / +69% |
 
-Reading it: in the Keynesian economy policy earns roughly two to three times the stars of
-doing nothing; in the neoclassical and New Keynesian economies the economy largely fixes
-itself. The Monetarist preset (credibility 0, Friedman's adaptive expectations) is the hard
-case: after a demand drop, deflation sets in and the Taylor rule hits the 0% floor on the
-interest rate, so the real rate stays too high (a zero-lower-bound trap). Even one round of
-maximum fiscal stimulus does not pull it out in this calibration; whether the Monetarist
-preset should be this unforgiving is an open choice.
+Total loss with no policy, for scale:
+
+| Event | Keynesian | Neoclassical | New Keynesian | Monetarist | Real world |
+|---|---|---|---|---|---|
+| Confidence collapses | 14.3 | 16.3 | 10.7 | 69.6 | 12.6 |
+| Spending boom | 8.1 | 12.7 | 6.0 | 42.0 | 6.6 |
+| Oil spike | 26.5 | 23.6 | 18.6 | 20.8 | 21.7 |
+| New technology | 2.6 | 1.7 | 1.3 | 15.3 | 2.1 |
+
+Reading it: policy earns its keep after demand shocks in every economy. The oil spike is the
+hard case: it raises unemployment and inflation together, so any policy trades one against
+the other, and the Taylor rule does worse than no policy in the neoclassical and New
+Keynesian economies. The Monetarist economy loses the most with no policy (expectations
+follow inflation down in a slump and up in a boom), so it has the most to gain from good
+policy, and the Taylor rule alone does not rescue it from a slump: deflation takes the rate
+down to 0.25%, next to the 0% floor, for five rounds, and the score is about the same as no
+policy.
+
+## Optimal policy
+
+The game can compare the class's policy with the best achievable, for the same economy and
+event, on the players' own buttons (whole spending steps; 25 basis point rate steps, at most 2
+points a round, never below 0%). Two approaches, compared in
+`specs/POLICY_UNIVERSES_OPTIMAL_COMPARISON.md`:
+
+- **The optimal path (perfect-foresight search).** The whole plan of spending and rate moves
+  for every round is chosen to minimize the total welfare loss, played in the full model.
+  Coordinate search: starting from no change, the no-policy path, the Taylor rule's path and
+  the optimal rule's path, it improves one round's choice at a time until nothing improves. It
+  knows the event and the model, which no real central bank does, so it is an upper bound. It
+  is computed when the event hits (or at the end of the game when the class picks the shocks).
+- **The optimal rule (linear-quadratic).** The engine's one-round transition is linearized
+  numerically around the starting point; the state is the position of AD and SRAS, potential
+  GDP, expected inflation, the rates set and in effect, the part of the event still in place,
+  last round's price level and the policy still on its way. The discounted Riccati equation
+  (discount 0.95 a round) gives the rule $u_t = -F x_t$ for the change in spending and in the
+  rate, rounded to the buttons. It reacts to the current state only, so a central bank could
+  follow it. At the 0% floor, the rate is held and fiscal policy re-chosen from the same
+  solution.
+- **Instrument costs.** Both levers move AD, so the rule needs a cost on moving each to choose
+  a mix. These costs are not part of the score. They are tuned rather than assumed: for each
+  economy and pair of welfare weights, the pair (from a grid, 0.002 to 0.5 per fiscal step
+  squared, 0.1 to 3.2 per rate point squared) whose rule gives the lowest welfare loss over the
+  four events, relative to no policy. The presets are precomputed in `tuned_costs.js`; other
+  settings are tuned when the game starts. Settings can switch tuning off and set the costs
+  by hand.
+
+**In the game.** With the option on, the optimal path appears on the charts, gauges and
+AD/AS panel, the round log shows the optimal plan, and the class gets a second score, the
+share of the achievable gain:
+$100\,(L_{\text{no policy}} - L_{\text{class}})/(L_{\text{no policy}} - L_{\text{optimal}})$,
+where 100% matches the optimal path and 0% is no better than no policy. Every path is scored
+over the game plus 4 tail rounds of no policy, so a late stimulus is charged for the inflation
+that follows. Either team can hand its lever to the optimal rule ("Autopilot: optimal rule"),
+and a separate option shows the optimal rule's move before each round.
+
+**How good is the rule?** Over 180 cases (5 economies, 4 events, 8 to 20 rounds, 3 sets of
+welfare weights) its median share of the achievable gain is 89%, against 44% for the Taylor
+rule; it does worse than no policy in 1 case, the Taylor rule in 30.
 
 ## How it compares with Mankiw's dynamic AD/AS model
 
@@ -139,10 +217,11 @@ by edition; check the exact symbols against the edition in use):
 |---|---|---|
 | Expectations | Yes, with credibility $\kappa = 0$ | $\kappa > 0$ adds anchoring (a New Keynesian extension) |
 | Real rate and Fisher equation | Yes: demand responds to $r = i - \pi^e$ relative to a neutral rate | Demand enters as a shift of a price-level AD curve rather than an output equation |
-| Policy rule | Yes: the Taylor autopilot is his rule with his 0.5 weights | Applied to last round's data, in 25 basis point steps, with the game's two-round phase-in |
+| Policy rule | Yes: the Taylor autopilot's target is his rule with his 0.5 weights | Applied to last round's data, moving half way to the target each round (smoothing), in 25 basis point steps, with the game's two-round phase-in |
 | Phillips curve | Same structure: expected inflation plus a gap effect plus supply shocks | Curved (not linear) SRAS, plus the separate wage-adjustment speed $\lambda$ |
 | Picture | | Static price-level AD/AS, as in the principles slides; a dynamic inflation-axis version is a separate project |
-| Additions | | Fiscal levers and multiplier, lags, expected-policy share, Okun's unemployment, dual-mandate scoring |
+| Shocks | Demand and supply shocks, as his $\varepsilon_t$ and $\upsilon_t$ | His shocks can follow any path; the game has one event at the start that fades geometrically, at 90% a round by default |
+| Additions | | Fiscal levers and multiplier, lags, expected-policy share, Okun's unemployment, dual-mandate scoring, a neutral-real-rate no-policy benchmark, the optimal rule and the optimal path |
 
 **Is Mankiw's model nested?** Closer, not exactly. Expectations, the real-rate channel and
 the policy rule now match his; the price-level form of AD, the curved SRAS and $\lambda$
@@ -150,6 +229,13 @@ keep it from being an exact special case.
 
 ## What the model leaves out
 
-- Money, banks, exchange rates, and government debt.
+- Money, banks and exchange rates. The Monetarist preset works through expectations, not a
+  money supply.
+- Government debt: a spending increase has no budget cost, and nothing pushes the government
+  to reverse it, apart from the economy overheating as the event fades.
+- Credibility that is earned or lost: it is fixed for the game.
 - Interest-rate pass-through is a single sensitivity $\beta$.
 - A round is a period of no fixed length.
+- Curve limits: AD and SRAS can move at most 3,000 and 5,000 from the start; if custom
+  settings push the economy past one, the game says so instead of showing a false resting
+  point.

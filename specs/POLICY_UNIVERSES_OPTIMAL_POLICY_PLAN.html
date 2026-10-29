@@ -105,7 +105,8 @@ window.Quarto = {
 </header>
 
 
-<p>Plan for adding an optimal-policy benchmark to the game, so a class’s policy can be compared both with doing nothing and with the best achievable policy. Model: <code>specs/POLICY_UNIVERSES_MODEL.md</code>. Nothing here is built yet.</p>
+<p>Plan for adding an optimal-policy benchmark to the game, so a class’s policy can be compared both with doing nothing and with the best achievable policy. Model: <code>specs/POLICY_UNIVERSES_MODEL.md</code>.</p>
+<p><strong>Status, 2026-10-28: built.</strong> Steps 1 to 6 are done; the model write-up’s “Optimal policy” section describes what shipped. Two things changed from this plan after a second review: the instrument costs are tuned to the welfare loss for each economy instead of set by hand (decision 2), and no policy, in the tail rounds and the benchmark, holds the real rate at neutral instead of the nominal rate at 3%.</p>
 <section id="goal" class="level2">
 <h2 class="anchored" data-anchor-id="goal">Goal</h2>
 <p>For the economy and event being played, compute the optimal policy for <strong>both instruments</strong> (fiscal and monetary), using <strong>the same buttons the players have</strong>. Show it as a third path, and give <strong>two scores</strong>:</p>
