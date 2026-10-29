@@ -380,6 +380,15 @@
     return { change: change, target: target };
   };
 
+  // No monetary policy: the nominal rate that holds the real rate at its neutral
+  // level given this round's expected inflation (i = pi_e + r*), at 0 or above.
+  // Holding the nominal rate fixed instead would be a policy, and an unstable
+  // one: with expectations that follow inflation, a fixed nominal rate lets the
+  // real rate fall as inflation rises, so a boom or a slump feeds on itself.
+  Universe.prototype.neutralRate = function () {
+    return clamp(INFLATION_TARGET + (this.expectedExtra || 0) + R_STAR, 0, RATE_MAX);
+  };
+
   // The spending change a balanced budget forces: revenue moved with GDP last
   // round, so spending moves the same amount (in units of real GDP).
   Universe.prototype.balancedBudgetSpending = function () {
@@ -473,13 +482,15 @@
   // A game: two universes, the same shocks and the same choices.
   // opts: { rounds, shockMode: 'event' | 'scripted' | 'custom', event, universes: { a: settings, b: settings } }
   // 'event': one event hits in round 1 (opts.event, a SHOCKS key) and the teams respond.
-  // opts.autopilot: { monetary: false | 'taylor' | 'optimal', fiscal: false | 'balanced' | 'optimal' }
+  // opts.autopilot: { monetary: false | 'taylor' | 'optimal' | 'neutral', fiscal: false | 'balanced' | 'optimal' }
+  // 'neutral' is no monetary policy: the nominal rate follows expected inflation
+  // so the real rate stays at its neutral 1% (see neutralRate).
   // (true means 'taylor' and 'balanced', as in older links). 'optimal' is the
   // linear-quadratic optimal rule from optimal.js, which registers itself with
   // setOptimalRule; without it, 'optimal' falls back to the plain rule.
   function autopilotOf(a) {
     a = a || {};
-    var m = a.monetary === true ? 'taylor' : (a.monetary === 'taylor' || a.monetary === 'optimal' ? a.monetary : false);
+    var m = a.monetary === true ? 'taylor' : (a.monetary === 'taylor' || a.monetary === 'optimal' || a.monetary === 'neutral' ? a.monetary : false);
     var f = a.fiscal === true ? 'balanced' : (a.fiscal === 'balanced' || a.fiscal === 'optimal' ? a.fiscal : false);
     return { monetary: m, fiscal: f };
   }
@@ -487,8 +498,9 @@
   function setOptimalRule(fn) { optimalRule = fn; }
 
   // Every game also runs a no-policy twin (game.baseline): same universes, same
-  // shocks, no choices and no autopilot, so the views can show what would have
-  // happened if nobody had acted.
+  // shocks, no fiscal choices, and the real rate held at neutral (the 'neutral'
+  // monetary mode), so the views can show what would have happened if nobody
+  // had acted.
   function Game(opts) {
     this.rounds = opts.rounds || 10;
     this.shockMode = opts.shockMode || 'scripted';
@@ -506,7 +518,7 @@
       this.universes[this.keys[i]] = new Universe(us);
     }
     this.baseline = opts.noBaseline ? null
-      : new Game({ rounds: this.rounds, shockMode: this.shockMode, event: this.event, scoring: opts.scoring, universes: opts.universes, noBaseline: true });
+      : new Game({ rounds: this.rounds, shockMode: this.shockMode, event: this.event, scoring: opts.scoring, universes: opts.universes, noBaseline: true, autopilot: { monetary: 'neutral' } });
   }
 
   // A full copy of the game at its current round (the no-policy twin too), so
@@ -565,6 +577,12 @@
       if (ap.monetary === 'taylor') {
         var t = u.taylorChange();
         c.autoRate = true; c.autoRateMode = 'taylor'; c.taylorTarget = t.target; want = t.change;
+      } else if (ap.monetary === 'neutral') {
+        // Moves like the players' own lever: 25 basis point steps, at most 2
+        // points a round, through the same phase-in, so no policy is a path the
+        // class could have chosen.
+        c.autoRate = true; c.autoRateMode = 'neutral';
+        want = clamp(Math.round((u.neutralRate() - u.rate) * 4) / 4, -2, 2);
       } else if (ap.monetary === 'optimal') {
         c.autoRate = true; c.autoRateMode = 'optimal'; want = oc.rate;
       }

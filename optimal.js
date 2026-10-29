@@ -24,6 +24,13 @@
 
   var DEFAULTS = {
     discount: 0.95,   // per round
+    // Instrument costs. The rule needs them to choose a mix of the two levers
+    // (both move AD), but they are not part of the welfare loss. With tuneCosts
+    // on, the costs are not assumed: tunedCosts picks, for each economy, the pair
+    // whose rule gives the lowest true welfare loss, so the rule is the best rule
+    // of this form judged by the game's own score. costFiscal and costRate are
+    // then used only when tuneCosts is off.
+    tuneCosts: true,
     costFiscal: 0.05, // loss per (spending step)^2
     costRate: 0.8,    // loss per (percentage point)^2: a 25 bp move costs 0.05, the same as a fiscal step
     tail: 4,          // rounds after the game, with no new policy, counted in every score
@@ -161,7 +168,8 @@
   // ---- Playing and scoring a plan ---------------------------------------------
   // game1: a one-universe game right after round 1 (the event round). choose(g, t)
   // returns the choice for round t. Plays rounds 2..rounds, then `tail` rounds
-  // with no new policy, and returns the total loss over every round.
+  // with no policy (no new fiscal steps, the real rate held at neutral), and
+  // returns the total loss over every round.
   function play(game1, choose, opts) {
     var tail = opts.tail;
     var g = game1.clone({ rounds: game1.rounds + tail });
@@ -172,7 +180,7 @@
       choices.push(ch);
       g.step(ch);
     }
-    g.autopilot = { monetary: false, fiscal: false };
+    g.autopilot = { monetary: 'neutral', fiscal: false };
     while (!g.isOver()) g.step({});
     var h = g.universes[k].history, L = 0;
     for (var i = 1; i < h.length; i++) L += h[i].loss;
@@ -180,8 +188,8 @@
   }
 
   function lqPlan(game1, opts) {
-    opts = Object.assign({}, DEFAULTS, opts || {});
     var u0 = game1.universes[game1.keys[0]], s = u0.settings, rules = {};
+    opts = withCosts(s, game1.scoring, opts);
     function ruleFor(t) {
       var lam = E.lambdaAt(s, t);
       if (!rules[lam]) rules[lam] = lqRule(s, Object.assign({}, opts, { round: t, scoring: game1.scoring }));
@@ -193,8 +201,11 @@
     }, opts);
   }
 
+  // No policy: no fiscal steps, and the real rate held at neutral.
   function nonePlan(game1, opts) {
-    return play(game1, function () { return {}; }, Object.assign({}, DEFAULTS, opts || {}));
+    var g1 = game1.clone();
+    g1.autopilot = { monetary: 'neutral', fiscal: false };
+    return play(g1, function () { return {}; }, Object.assign({}, DEFAULTS, opts || {}));
   }
 
   function taylorPlan(game1, opts) {
@@ -250,12 +261,68 @@
     return result;
   }
 
+  // ---- Tuning the instrument costs to the welfare loss ---------------------------
+  // For each pair of costs on the grid, solve the rule and play it in the true
+  // model after each of the four events (12 rounds plus the tail, the class's
+  // welfare weights), and keep the pair with the lowest average loss relative
+  // to no policy. Each event counts equally; the no-policy loss is floored at 1
+  // so a mild event cannot dominate. Cached by economy, weights and options.
+  var COST_GRID = {
+    fiscal: [0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5],
+    rate: [0.1, 0.2, 0.4, 0.8, 1.6, 3.2]
+  };
+  var TUNE_ROUNDS = 12;
+  // The economy's parameters that the tuning depends on (not its name or label).
+  var MODEL_KEYS = ['lambda', 'multiplier', 'expected', 'credibility', 'inertia', 'rateSensitivity', 'fiscalLag', 'monetaryLag', 'lag', 'lambdaLate', 'switchRound'];
+  function tuneKey(settings, scoring, o) {
+    var sc = E.scoringOf(scoring);
+    return JSON.stringify([MODEL_KEYS.map(function (k) { return settings[k] == null ? null : settings[k]; }),
+      sc.wU, sc.wPi, o.discount, o.tail, COST_GRID]);
+  }
+  // Precomputed results for the presets (tuned_costs.js, written by
+  // scripts/tune_costs.js), so the usual games need no tuning at the start;
+  // anything else is tuned in the browser (0.1 to 0.3 s on a laptop).
+  var TUNED = (root.PU && root.PU.tunedTable) || null;
+  if (!TUNED && typeof require === 'function') { try { TUNED = require('./tuned_costs.js'); } catch (e) { TUNED = null; } }
+  var tuneCache = {};
+  function tunedCosts(settings, scoring, opts) {
+    var o = Object.assign({}, DEFAULTS, opts || {});
+    var key = tuneKey(settings, scoring, o);
+    var fresh = !!(opts && opts.fresh);   // tune now, ignoring the cache and the table
+    if (!fresh && tuneCache[key]) return tuneCache[key];
+    if (!fresh && TUNED && TUNED[key]) return (tuneCache[key] = TUNED[key]);
+    var games = E.EVENTS.map(function (ev) {
+      var g = E.createGame({ rounds: TUNE_ROUNDS, shockMode: 'event', event: ev, scoring: scoring, noBaseline: true, universes: { a: settings } });
+      g.step({});
+      return { g: g, none: Math.max(1, nonePlan(g, o).loss) };
+    });
+    var best = null;
+    COST_GRID.fiscal.forEach(function (cf) {
+      COST_GRID.rate.forEach(function (cr) {
+        var oc = Object.assign({}, o, { tuneCosts: false, costFiscal: cf, costRate: cr });
+        var score = 0;
+        games.forEach(function (x) { score += lqPlan(x.g, oc).loss / x.none; });
+        score /= games.length;
+        if (!best || score < best.score - 1e-12) best = { costFiscal: cf, costRate: cr, score: score };
+      });
+    });
+    tuneCache[key] = best;
+    return best;
+  }
+  // The options with the costs filled in: tuned, unless tuning is off.
+  function withCosts(settings, scoring, opts) {
+    var o = Object.assign({}, DEFAULTS, opts || {});
+    if (o.tuneCosts === false) return o;
+    var t = tunedCosts(settings, scoring, o);
+    return Object.assign(o, { tuneCosts: false, costFiscal: t.costFiscal, costRate: t.costRate });
+  }
+
   // ---- In the game -----------------------------------------------------------
   // The optimal rule as an autopilot: the engine asks for a choice each round.
   // Rules are cached by settings, welfare weights, adjustment speed and options.
   var ruleCache = {};
   function cachedRule(settings, round, scoring, opts) {
-    var o = Object.assign({}, DEFAULTS, opts || {});
+    var o = withCosts(settings, scoring, opts);
     var lam = E.lambdaAt(settings, round);
     var key = JSON.stringify([settings, lam, scoring && [scoring.wU, scoring.wPi], o.discount, o.costFiscal, o.costRate]);
     if (!ruleCache[key]) ruleCache[key] = lqRule(settings, Object.assign({}, o, { round: round, scoring: scoring }));
@@ -278,15 +345,16 @@
   }
 
   // The benchmark for one universe, from a game right after round 1: the
-  // optimal plan by search (started from no policy, the Taylor rule's path and
-  // the optimal rule's path), and no policy, each scored over the game plus tail.
+  // optimal plan by search (started from no change, the no-policy path, the
+  // Taylor rule's path and the optimal rule's path), and no policy, each scored over the game plus tail.
   function benchmark(game, k, opts) {
     opts = Object.assign({}, DEFAULTS, opts || {});
     var g1 = soloGame(game, k);
     var none = nonePlan(g1, opts), tay = taylorPlan(g1, opts), lq = lqPlan(g1, opts);
     var n = g1.rounds;
     var taylorStart = tay.history.slice(2, n + 1).map(function (r) { return { spending: 0, rate: r.rate || 0 }; });
-    var best = searchPlan(g1, Object.assign({}, opts, { starts: [taylorStart, lq.choices] }));
+    var noneStart = none.history.slice(2, n + 1).map(function (r) { return { spending: 0, rate: r.rate || 0 }; });
+    var best = searchPlan(g1, Object.assign({}, opts, { starts: [noneStart, taylorStart, lq.choices] }));
     return { k: k, none: none, taylor: tay, lqRule: lq, optimal: best, tail: opts.tail };
   }
 
@@ -298,6 +366,7 @@
     opts = Object.assign({}, DEFAULTS, opts || {});
     var g = soloGame(game, k);
     g.rounds = game.rounds + opts.tail;
+    g.autopilot = { monetary: 'neutral', fiscal: false };
     while (!g.isOver()) g.step({});
     var h = g.universes[k].history, Ly = 0;
     for (var i = 1; i < h.length; i++) Ly += h[i].loss;
@@ -349,7 +418,8 @@
     DEFAULTS: DEFAULTS, stateSize: stateSize, extract: extract, transition: transition,
     linearize: linearize, lqRule: lqRule, ruleChoice: ruleChoice,
     play: play, lqPlan: lqPlan, nonePlan: nonePlan, taylorPlan: taylorPlan, searchPlan: searchPlan,
-    soloGame: soloGame, benchmark: benchmark, finalScores: finalScores, effectiveWeights: effectiveWeights, cachedRule: cachedRule
+    soloGame: soloGame, benchmark: benchmark, finalScores: finalScores, effectiveWeights: effectiveWeights, cachedRule: cachedRule,
+    tunedCosts: tunedCosts, withCosts: withCosts, tuneKey: tuneKey, COST_GRID: COST_GRID
   };
   root.PU = root.PU || {};
   root.PU.optimal = optimal;

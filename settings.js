@@ -8,7 +8,7 @@
  *     supplyLever, universeCount: 1 | 2,
  *     autopilot: {monetary: false | 'taylor' | 'optimal', fiscal: false | 'balanced' | 'optimal'},
  *     predictions, showRealRate, scoring: {on, uBand, piBand, wU, wPi},
- *     optimal: {show, hint, discount, costFiscal, costRate, tail},
+ *     optimal: {show, hint, tuneCosts, discount, costFiscal, costRate, tail},
  *     universes: { a: {name, preset, lambda, multiplier, expected, credibility,
  *     rateSensitivity, fiscalLag, monetaryLag, lambdaLate, switchRound}, b: {...} } }
  * event 'random' is left for the caller to resolve to an EVENTS key when a game starts.
@@ -19,7 +19,7 @@
  * apm / apf (monetary / fiscal autopilot: 0 off, 1 Taylor rule / balanced budget, 2 optimal rule),
  * pr (predictions, 1/0), rr (real rate, 1/0),
  * sc (scoring 1/0), zu / zi (zone half-widths), wu / wp (star weights),
- * os (show the optimal path, 1/0), od (discount), ocf (cost of a fiscal step),
+ * os (show the optimal path, 1/0), otc (tune the costs to the welfare loss, 1/0), od (discount), ocf (cost of a fiscal step),
  * ocr (cost of a rate move), ot (tail rounds), and per slot
  * a_p (preset k/n/nk/mo/w), a_n (name), a_l, a_m, a_e, a_c (credibility),
  * a_rs (rate sensitivity), a_fl, a_ml, a_ll, a_sr.
@@ -236,13 +236,13 @@
 
   function freshOptimal() {
     var d = optDefaults();
-    return { show: true, hint: false, discount: d.discount, costFiscal: d.costFiscal, costRate: d.costRate, tail: d.tail };
+    return { show: true, hint: false, tuneCosts: true, discount: d.discount, costFiscal: d.costFiscal, costRate: d.costRate, tail: d.tail };
   }
 
   function optimalChanged() {
     var d = optDefaults();
     for (var i = 0; i < OPT_KEYS.length; i++) if (state.optimal[OPT_KEYS[i]] !== d[OPT_KEYS[i]]) return true;
-    return false;
+    return state.optimal.tuneCosts === false;
   }
 
   function freshState() {
@@ -314,7 +314,7 @@
       predictions: state.predictions,
       showRealRate: state.showRealRate,
       scoring: { on: sc.on, uBand: sc.uBand, piBand: sc.piBand, wU: sc.wU, wPi: sc.wPi },
-      optimal: { show: op.show, hint: !!op.hint, discount: op.discount, costFiscal: op.costFiscal, costRate: op.costRate, tail: op.tail },
+      optimal: { show: op.show, hint: !!op.hint, tuneCosts: op.tuneCosts !== false, discount: op.discount, costFiscal: op.costFiscal, costRate: op.costRate, tail: op.tail },
       universes: {}
     };
     SLOTS.forEach(function (s) {
@@ -373,6 +373,8 @@
     if (os !== null) state.optimal.show = os;
     var oh = flag(params.get('oh'));
     if (oh !== null) state.optimal.hint = oh;
+    var otc = flag(params.get('otc'));
+    if (otc !== null) state.optimal.tuneCosts = otc;
     OPT_KEYS.forEach(function (k) {
       var v = clean(k, params.get(OPT_URL[k]));
       if (v !== null) state.optimal[k] = v;
@@ -421,7 +423,7 @@
     var params;
     try { params = new URLSearchParams(root.location.search); } catch (e) { params = new URLSearchParams(); }
     // Drop our own keys (and the old ones), keep anything else on the page address.
-    var ours = ['r', 'm', 'ev', 'sl', 'u', 'apm', 'apf', 'pr', 'rr', 'sc', 'os', 'oh'];
+    var ours = ['r', 'm', 'ev', 'sl', 'u', 'apm', 'apf', 'pr', 'rr', 'sc', 'os', 'oh', 'otc'];
     OPT_KEYS.forEach(function (k) { ours.push(OPT_URL[k]); });
     Object.keys(SCORE_FIELDS).forEach(function (k) { ours.push(SCORE_FIELDS[k][0]); });
     SLOTS.forEach(function (s) {
@@ -446,6 +448,7 @@
     });
     params.set('os', cfg.optimal.show ? '1' : '0');
     params.set('oh', cfg.optimal.hint ? '1' : '0');
+    params.set('otc', cfg.optimal.tuneCosts === false ? '0' : '1');
     OPT_KEYS.forEach(function (k) { params.set(OPT_URL[k], String(cfg.optimal[k])); });
     SLOTS.forEach(function (s) {
       var u = cfg.universes[s];
@@ -800,6 +803,14 @@
     var obody = el('div', { class: 'pu-set-adv-body pu-set-optimal-body' });
     r.optSliders = {};
     OPT_FIELDS.forEach(function (f) {
+      if (f.key === 'costFiscal') {
+        var otune = checkbox('Tune the costs to the welfare loss (recommended)', 'tuneCosts', obody);
+        otune.input.addEventListener('change', function () {
+          state.optimal.tuneCosts = otune.input.checked;
+          changed();
+        });
+        r.optTune = otune.input;
+      }
       r.optSliders[f.key] = slider(f.key, f.label, f.tip, obody, function (v) { state.optimal[f.key] = v; });
     });
     oadv.appendChild(obody);
@@ -877,6 +888,11 @@
     var op = state.optimal, od = optDefaults();
     g.optShow.checked = op.show;
     g.optHint.checked = !!op.hint;
+    g.optTune.checked = op.tuneCosts !== false;
+    ['costFiscal', 'costRate'].forEach(function (k) {
+      g.optSliders[k].input.disabled = locked || op.tuneCosts !== false;
+      g.optSliders[k].wrap.classList.toggle('is-disabled', op.tuneCosts !== false);
+    });
     OPT_KEYS.forEach(function (k) {
       setSlider(g.optSliders[k], k, op[k]);
       g.optSliders[k].wrap.classList.toggle('is-changed', op[k] !== od[k]);

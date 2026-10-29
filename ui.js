@@ -568,7 +568,7 @@
   function optimalOpts(cfg) {
     var o = (cfg && cfg.optimal) || {};
     var out = {};
-    ['discount', 'costFiscal', 'costRate', 'tail'].forEach(function (k) { if (o[k] != null) out[k] = o[k]; });
+    ['discount', 'tuneCosts', 'costFiscal', 'costRate', 'tail'].forEach(function (k) { if (o[k] != null) out[k] = o[k]; });
     return out;
   }
   function optimalOn() { return !!PU.optimal && !(config.optimal && config.optimal.show === false); }

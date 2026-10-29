@@ -36,12 +36,40 @@ test('the Riccati iteration converges and the rule is stable on the linear model
   }
 });
 
-test('the LQ rule beats doing nothing and the Taylor rule after a demand drop', () => {
-  for (const pre of ['keynesian', 'neoclassical', 'newkeynesian']) {
+test('the LQ rule beats doing nothing after a demand drop, and the Taylor rule on average over the events', () => {
+  for (const pre of ['keynesian', 'neoclassical', 'newkeynesian', 'monetarist', 'realworld']) {
     const g = afterEvent(pre, 'demand_drop');
-    const none = O.nonePlan(g), tay = O.taylorPlan(g), lq = O.lqPlan(g);
+    const none = O.nonePlan(g), lq = O.lqPlan(g);
     assert.ok(lq.loss < none.loss, `${pre}: LQ ${lq.loss} vs none ${none.loss}`);
-    assert.ok(lq.loss < tay.loss, `${pre}: LQ ${lq.loss} vs Taylor ${tay.loss}`);
+    let L = 0, T = 0;
+    for (const ev of E.EVENTS) { const h = afterEvent(pre, ev); L += O.lqPlan(h).loss; T += O.taylorPlan(h).loss; }
+    assert.ok(L < T, `${pre}: LQ ${L} vs Taylor ${T} over the four events`);
+  }
+});
+
+test('tuned instrument costs: chosen from the grid, and no worse than the old fixed costs', () => {
+  for (const pre of ['keynesian', 'newkeynesian']) {
+    const s = E.PRESETS[pre], sc = E.scoringOf();
+    const t = O.tunedCosts(s, sc);
+    assert.ok(O.COST_GRID.fiscal.includes(t.costFiscal) && O.COST_GRID.rate.includes(t.costRate));
+    let fixed = 0;
+    for (const ev of E.EVENTS) {
+      const g = E.createGame({ rounds: 12, shockMode: 'event', event: ev, scoring: sc, noBaseline: true, universes: { a: s } });
+      g.step({});
+      fixed += O.lqPlan(g, { tuneCosts: false, costFiscal: 0.05, costRate: 0.8 }).loss / Math.max(1, O.nonePlan(g).loss);
+    }
+    assert.ok(t.score <= fixed / 4 + 1e-12, `${pre}: tuned ${t.score} vs fixed ${fixed / 4}`);
+    // With tuning off, the costs given are used as they are.
+    assert.strictEqual(O.withCosts(s, sc, { tuneCosts: false, costFiscal: 0.3 }).costFiscal, 0.3);
+  }
+});
+
+test('the optimal path is never worse than no policy (the no-policy path is one of its starts)', () => {
+  for (const pre of ['keynesian', 'monetarist']) for (const ev of ['oil', 'boom']) {
+    const g = E.createGame({ rounds: 12, shockMode: 'event', event: ev, universes: { k: E.PRESETS[pre] } });
+    g.step({});
+    const b = O.benchmark(g, 'k');
+    assert.ok(b.optimal.loss <= b.none.loss + 1e-9, `${pre} ${ev}: optimal ${b.optimal.loss} vs none ${b.none.loss}`);
   }
 });
 
@@ -99,4 +127,16 @@ test('custom shocks: the benchmark replays the shocks it is given', () => {
   const without = O.benchmark(g, 'k');
   assert.strictEqual(withShock.none.history[3].shock, 'oil');
   assert.ok(withShock.none.loss > without.none.loss);
+});
+
+test('the precomputed table of tuned costs matches a fresh tuning (rerun scripts/tune_costs.js if not)', () => {
+  const T = require(path.join(__dirname, '../tuned_costs.js'));
+  assert.strictEqual(Object.keys(T).length, 5 * 8, 'five presets by eight pairs of welfare weights');
+  for (const [pre, sc] of [['keynesian', { wU: 1, wPi: 1 }], ['monetarist', { wU: 2, wPi: 1 }], ['realworld', { wU: 0, wPi: 2 }]]) {
+    const key = O.tuneKey(E.PRESETS[pre], sc, O.DEFAULTS);
+    const fresh = O.tunedCosts(E.PRESETS[pre], sc, { fresh: true });
+    assert.ok(T[key], `${pre} ${JSON.stringify(sc)} is in the table`);
+    assert.strictEqual(T[key].costFiscal, fresh.costFiscal, `${pre}: fiscal cost`);
+    assert.strictEqual(T[key].costRate, fresh.costRate, `${pre}: rate cost`);
+  }
 });

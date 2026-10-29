@@ -19,8 +19,10 @@ Built for ECON 202, Principles of Macroeconomics, at the University of Wisconsin
   slides, sticky wages that close part of the output gap each round, inflation
   expectations set by central bank credibility, and a real interest rate channel.
 - **Scoring.** The Fed's dual mandate as a welfare loss: squared distance of unemployment
-  from 5% plus squared distance of inflation from 2%. The class wins by beating doing
-  nothing, and sees what share of the achievable gain it captured against the optimal path.
+  from 5% plus squared distance of inflation from 2%. The class wins by beating no policy
+  (no change in spending or taxes, and a central bank that holds the real interest rate at
+  its neutral 1%), and sees what share of the achievable gain it captured against the
+  optimal path.
 - **Views.** Gauges, the AD/AS diagram, charts over time with the no-policy and optimal
   paths, a round log, predictions before each round, a guided tour, and tooltips on every
   control. Light and dark modes.
@@ -46,7 +48,9 @@ node --test tests/test_engine.js tests/test_optimal.js
 ```
 
 `tests/fixtures/policy_universes_ref.R` regenerates the reference paths the engine is
-checked against. `node scripts/compare.js` reruns the comparison of the two
+checked against. `node scripts/tune_costs.js` rebuilds `tuned_costs.js`, the optimal rule's
+instrument costs precomputed for the presets; rerun it after changing the engine, the
+presets or the tuning (a test checks the table). `node scripts/compare.js` reruns the comparison of the two
 optimal-policy approaches and writes `specs/POLICY_UNIVERSES_OPTIMAL_COMPARISON.md`.
 
 ## Layout
@@ -55,12 +59,14 @@ optimal-policy approaches and writes `specs/POLICY_UNIVERSES_OPTIMAL_COMPARISON.
 |---|---|
 | `index.html` | The page |
 | `engine.js` | The model: universes, the game, presets, scoring |
-| `optimal.js` | Optimal policy: the linear-quadratic rule and the perfect-foresight search |
+| `optimal.js` | Optimal policy: the linear-quadratic rule, its tuned instrument costs, and the perfect-foresight search |
+| `tuned_costs.js` | The rule's tuned costs for the presets (generated) |
 | `ui.js`, `settings.js`, `gauges.js`, `adas.js`, `charts.js`, `log.js`, `tips.js`, `tour.js`, `scales.js` | The screens |
 | `*.css` | Styles; `tokens.css` holds the light and dark colors |
 | `dev/` | Test pages for single components |
 | `tests/` | Engine and optimal-policy tests |
 | `scripts/compare.js` | The optimal-policy comparison |
+| `scripts/tune_costs.js` | Builds `tuned_costs.js` |
 | `specs/` | Design plan, model write-up, build contract, and the optimal-policy plan and comparison |
 
 The game began as "Policy Universes" inside the ECON 202 course site, and the specs keep

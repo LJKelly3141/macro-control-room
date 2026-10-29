@@ -205,9 +205,13 @@ test('event mode: the event hits in round 1 only, and stars and the win follow t
   }
   const s = g.summary().n;
   assert.strictEqual(s.maxStars, 16);
-  // No policy at all: exactly the no-policy path, so no welfare gained and no win.
-  assert.strictEqual(s.loss, s.lossNoPolicy);
-  assert.strictEqual(s.won, false);
+  // Playing no policy (no fiscal steps, the real rate held at neutral) is
+  // exactly the no-policy path, so no welfare gained and no win.
+  const g2 = E.createGame({ rounds: 8, shockMode: 'event', event: 'oil', autopilot: { monetary: 'neutral' }, universes: { n: E.PRESETS.neoclassical } });
+  while (!g2.isOver()) g2.step({});
+  const s2 = g2.summary().n;
+  assert.strictEqual(s2.loss, s2.lossNoPolicy);
+  assert.strictEqual(s2.won, false);
 });
 
 test('a productivity gain lifts AD by half the gain', () => {
@@ -289,14 +293,32 @@ test('balanced-budget autopilot cuts spending in a slump and deepens it', () => 
   assert.ok(bb[6].unemployment > none[6].unemployment);
 });
 
-test('the no-policy twin gets the same event and no choices', () => {
+test('the no-policy twin gets the same event, no fiscal steps, and the real rate held at neutral', () => {
   const g = E.createGame({ rounds: 4, shockMode: 'event', event: 'demand_drop', universes: { k: E.PRESETS.keynesian } });
   g.step({}); g.step({ spending: 4, rate: -2 }); g.step({}); g.step({});
   const np = g.noPolicy('k');
   assert.strictEqual(np.length, 5);
   assert.strictEqual(np[1].shock, 'demand_drop');
-  assert.ok(np.every(r => r.spending === 0 && r.rate === 0));
+  assert.ok(np.every(r => r.spending === 0 && r.taxes === 0));
+  // Each round the rate is set, in 25 basis point steps, to expected inflation
+  // plus the neutral real rate of 1% (at 0 or above).
+  for (let i = 1; i < np.length; i++) {
+    const target = Math.max(0, np[i - 1].expectedNext != null ? np[i - 1].expectedNext + E.R_STAR : E.START_RATE);
+    assert.strictEqual(np[i].autoRateMode, 'neutral');
+    assert.ok(Math.abs(np[i].rateLevel - target) <= 0.125 + 1e-9, `round ${i}: ${np[i].rateLevel} vs ${target}`);
+  }
   assert.ok(g.universes.k.history[4].y > np[4].y, 'the stimulus should beat doing nothing');
+});
+
+test('holding the nominal rate is a policy: in a Keynesian boom it lets the real rate fall', () => {
+  const play = (ap) => {
+    const g = E.createGame({ rounds: 8, shockMode: 'event', event: 'boom', noBaseline: true, autopilot: ap, universes: { k: E.PRESETS.keynesian } });
+    while (!g.isOver()) g.step({});
+    return g.universes.k.history;
+  };
+  const held = play({}), neutral = play({ monetary: 'neutral' });
+  assert.ok(held[6].realRate < neutral[6].realRate, `real rate held ${held[6].realRate} vs neutral ${neutral[6].realRate}`);
+  assert.ok(held[6].inflation > neutral[6].inflation);
 });
 
 test('direction helper', () => {

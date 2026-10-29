@@ -14,7 +14,7 @@
 
   var TIPS = {
     // Game
-    mission: 'Your mission is the Federal Reserve\'s dual mandate: maximum employment (unemployment near the natural rate of 5%) and stable prices (inflation near the 2% target). The game measures how much better or worse the economy did because of your policy, compared with doing nothing. You win if your policy beat doing nothing.',
+    mission: 'Your mission is the Federal Reserve\'s dual mandate: maximum employment (unemployment near the natural rate of 5%) and stable prices (inflation near the 2% target). The game measures how much better or worse the economy did because of your policy, compared with doing nothing. You win if your policy beat doing nothing. No policy means no change in spending or taxes, and a central bank that keeps the real interest rate at its neutral 1%, moving the interest rate only to keep up with expected inflation.',
     stars: 'Welfare compared with no policy: the share of the economy\'s losses your policy avoided. Each round\'s loss is the squared distance of unemployment from 5% plus the squared distance of inflation from 2%, so big misses count much more than small ones. +40% means policy cut the losses by 40%; below 0 means doing nothing would have been better.',
     greenZone: 'The green zone is a guide to the dual mandate: unemployment close to the natural rate of 5% and inflation close to the 2% target. Congress gave the Federal Reserve the goals of maximum employment and stable prices; since 2012 the Fed has defined stable prices as 2% inflation. The score itself is the welfare loss, which grows the farther the economy is from 5% and 2%.',
     round: 'Each round is one period of time. The event hits in round 1. After that your policies arrive, and wages and prices adjust.',
@@ -47,7 +47,7 @@
     teamMonetary: 'Team Monetary advises on the interest rate. Monetary policy is decided by the Federal Reserve.',
     spending: 'Government spending. Raising it shifts AD right; cutting it shifts AD left. Each step is 100 of spending, and the multiplier makes the total effect bigger.',
     taxes: 'Taxes. A tax cut leaves people more to spend and shifts AD right; a tax increase shifts AD left. A tax change moves AD a bit less than the same change in spending, because people save part of it.',
-    rate: 'The interest rate. Cutting it makes borrowing cheaper, so businesses invest and households buy more, and AD shifts right. Raising it shifts AD left. The rate moves in steps of 25 basis points (0.25 percentage point); each step moves AD by 75. The rate cannot go below 0%.',
+    rate: 'The interest rate. Cutting it makes borrowing cheaper, so businesses invest and households buy more, and AD shifts right. Raising it shifts AD left. The rate moves in steps of 25 basis points (0.25 percentage point); each step moves AD by 75. The rate cannot go below 0%. Holding the rate is itself a choice: if expected inflation rises and the rate stays put, the real rate falls and AD shifts right.',
     rateLevel: 'The interest rate after this round\'s change. It started at 3%.',
     supply: 'Supply-side investment in education and technology. It costs stars nothing but takes 3 rounds to raise potential GDP.',
     lagNote: 'When this round\'s choices take effect in each universe. Policy takes time to pass and to change spending.',
@@ -74,7 +74,7 @@
     lastRound: 'Dashed lines: where the curves were last round, so you can see what shifted.',
 
     // No-policy path, predictions, autopilot, tutorial
-    noPolicy: 'What would have happened if nobody had done anything: same event, same universe, no policy. Compare it with what your policy did.',
+    noPolicy: 'What would have happened with no policy: same event, same universe. No policy means no change in spending or taxes, and a central bank that keeps the real interest rate at its neutral 1%, moving the interest rate only to keep up with expected inflation. Compare it with what your policy did.',
     predict: 'Before you play the round, predict what will happen in each universe. Then play and see if you were right. A change smaller than 0.2 points counts as about the same.',
     predictUp: 'Predict it will rise by more than 0.2 points.',
     predictSame: 'Predict it will stay about the same, within 0.2 points.',
@@ -90,7 +90,7 @@
     welfareBars: 'One bar per round: up and green when your policy did better than doing nothing that round, down and red when it did worse.',
     optimalPath: 'The optimal path: the best policy the computer found for this economy and this event, choosing spending and the interest rate every round with the same buttons you have. It assumes perfect foresight (it knows exactly how the event will play out), so no real policymaker could do quite this well. It is the benchmark for the share of the achievable gain.',
     achievable: 'Share of the achievable gain: how much of the improvement that was possible your policy captured. 100% means you matched the optimal path; 0% means no better than doing nothing; below 0 means worse than doing nothing. Counted over the game plus 4 rounds after it, so a late sugar rush is charged for its hangover.',
-    vsNone: 'Compared with doing nothing: the share of the no-policy loss your policy avoided, counted over the game plus 4 rounds after it.',
+    vsNone: 'Compared with doing nothing: the share of the no-policy loss your policy avoided, counted over the game plus 4 rounds after it. No policy means no change in spending or taxes, and a central bank that keeps the real interest rate at its neutral 1%, moving the interest rate only to keep up with expected inflation.',
     autopilotOptimalMonetary: 'Monetary autopilot, optimal rule: the interest rate rule that minimizes the welfare loss in a simplified (straight-line) version of this economy. It reacts to the current state of the economy, with no foresight, so a central bank could follow it. It can stumble when the rate is stuck at 0%.',
     autopilotOptimalFiscal: 'Fiscal autopilot, optimal rule: the government spending rule that minimizes the welfare loss in a simplified (straight-line) version of this economy, working together with monetary policy. It reacts to the current state, with no foresight.',
     autopilotMode: 'Hand this team to a rule. Off: the class decides. Taylor rule or balanced budget: the classic rules. Optimal rule: the rule derived from the welfare loss for this economy.',
@@ -99,9 +99,10 @@
     hintMonetary: 'What the optimal rule would do with the interest rate this round, from where the economy is now. It works out the best response in a simplified version of this economy, so it is a strong guide but not a guarantee.',
     showOptimal: 'Show the optimal path on the charts, gauges and round log, and score your policy as a share of the achievable gain.',
     discount: 'How much the optimal rule cares about future rounds: 0.95 means a round ahead counts 95% as much as now.',
-    costFiscal: 'A small cost on each step of fiscal policy, so the optimal rule moves gradually and does not swing spending around.',
-    costRate: 'A small cost on moving the interest rate, so the optimal rule moves gradually. At 0.8, a 25 basis point move costs the same as one fiscal step.',
-    tailRounds: 'Rounds after the game, with no new policy, counted in every score, so policy is charged for effects that arrive after the last round.',
+    tuneCosts: 'The optimal rule needs a cost on moving each lever to choose a mix of the two (both move AD). These costs are not part of your score. With this on, the game tries a range of costs for this economy and keeps the pair whose rule gives the lowest welfare loss over the four events, so the rule is the best of its kind judged by the same loss you are scored on. Turn it off to set the costs by hand.',
+    costFiscal: 'A cost on each step of fiscal policy, so the optimal rule moves gradually and does not swing spending around. Used only when the costs are not tuned to the welfare loss.',
+    costRate: 'A cost on moving the interest rate, so the optimal rule moves gradually. At 0.8, a 25 basis point move costs 0.05, the same as one fiscal step at 0.05. Used only when the costs are not tuned to the welfare loss.',
+    tailRounds: 'Rounds after the game, with no policy (no new spending or tax changes, and the real rate back at neutral), counted in every score, so policy is charged for effects that arrive after the last round.',
     // Tabs
     tabDashboard: 'Where the economy is now in each universe: the two gauges and the AD/AS model.',
     tabTime: 'How real GDP, unemployment, inflation and the price level moved round by round in both universes.',
