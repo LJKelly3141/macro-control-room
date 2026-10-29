@@ -345,7 +345,8 @@
     // Below the plot: round numbers, then one strip row per universe for the
     // F and M tags. Rows are always reserved so the layout does not jump.
     var stripRow = 20;
-    m.bottom = 22 + keys.length * stripRow + 4;
+    // spec.noStrip (the dashboard strip): no F and M rows.
+    m.bottom = 22 + (spec.noStrip ? 0 : keys.length * stripRow) + 4;
     var plotH = Math.round(Math.max(130, Math.min(200, width * 0.36)));
     var H = m.top + plotH + m.bottom;
     var lo = spec.range.min, hi = spec.range.max;
@@ -535,7 +536,7 @@
     // Policy strip: F and M tags where policy took effect in each universe.
     var arrivedText = [];
     var slot = plotW / R;
-    for (u = 0; u < keys.length; u++) {
+    for (u = 0; u < (spec.noStrip ? 0 : keys.length); u++) {
       k = keys[u]; h = game.universes[k].history;
       var sy = axisY + 22 + u * stripRow + stripRow / 2;
       // Row key in the left margin: the universe's marker shape.
@@ -915,7 +916,7 @@
     var rd = expandRange({ min: -2, max: 4 }, 2, valuesOf(view, ['deficitPct'], false));
     var rates = {
       title: 'Interest rates', field: 'realRate', range: rr, ticks: rr.ticks, fmt: pctFmt,
-      lineTip: 'realRate', noNoPolicy: true,
+      lineTip: 'realRate', noNoPolicy: true, noStrip: true,
       alt: [{ field: 'nominalRate', cls: 'pu-line pu-rate-nominal', tip: 'nominalRate' }],
       ref: { value: rStar, label: 'Neutral real rate ' + rStar + '%', tip: 'realRate' },
       ariaNote: 'Solid line with markers: real interest rate. Dash-dot line: nominal interest rate in effect.',
@@ -923,7 +924,7 @@
     };
     var deficit = {
       title: 'Budget deficit', field: 'deficitPct', range: rd, ticks: rd.ticks, fmt: pctFmt,
-      lineTip: 'deficit', noNoPolicy: true,
+      lineTip: 'deficit', noNoPolicy: true, noStrip: true,
       ref: { value: 0, label: 'Balanced budget', tip: 'deficit' },
       ariaNote: 'Government spending minus tax revenue, percent of real GDP; above 0 is a deficit, below 0 a surplus.',
       tipFmt: function (r) { return 'deficit ' + f1(r.deficitPct) + '% of GDP'; }
