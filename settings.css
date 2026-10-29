@@ -1,0 +1,377 @@
+/* Macro Control Room: settings panel. All rules scoped under .pu-settings.
+ *
+ * Every color is a token from tokens.css, so a theme switch (data-theme on
+ * <html>) restyles the panel with no redraw. Contrast targets (WCAG 2.1 AA):
+ * text 4.5:1 on its background, control boundaries and focus rings 3:1.
+ * Text uses --ink / --muted / --accent / --u-a / --u-b; control borders use
+ * --rule. Locked (disabled) controls keep readable text and signal the lock
+ * with a dashed border and the lock message, not with color alone.
+ */
+.pu-settings {
+  font-size: var(--size-body);
+  color: var(--ink);
+  background: var(--card);
+}
+.pu-settings fieldset { margin: 0; min-width: 0; }
+.pu-settings label { font-weight: 600; }
+.pu-settings :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.pu-set-lock {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-left: 4px solid var(--accent);
+  background: var(--panel);
+  color: var(--ink);
+  font-weight: 600;
+}
+.pu-set-lock[hidden] { display: none; }
+
+/* Game-wide controls: rounds, event and supply lever on the left, shock mode on the right. */
+.pu-set-game {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 32px;
+  align-items: flex-start;
+  margin-bottom: var(--gap);
+}
+.pu-set-game-col { flex: 1 1 280px; max-width: 460px; min-width: 0; }
+.pu-set-game .pu-set-field { margin: 4px 0 10px; }
+.pu-set-game-side { flex: 0 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.pu-set-shocks, .pu-set-play { border: 0; padding: 0; min-width: 0; }
+.pu-set-shocks legend, .pu-set-play legend { font-weight: 600; padding: 0; margin-bottom: 4px; color: var(--ink); }
+.pu-set-radio, .pu-set-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+.pu-set-radio label, .pu-set-check label { font-weight: 400; cursor: pointer; }
+/* Autopilot and prediction switches: read from the back of the room (15px floor; body is larger). */
+.pu-set-check-lg { min-height: 40px; }
+.pu-set-check-lg label { font-size: max(15px, 1em); line-height: 1.3; }
+.pu-set-check[hidden], .pu-set-field[hidden] { display: none; }
+
+/* Radio buttons and checkboxes, drawn here so both themes get a 3:1 boundary. */
+.pu-set-radio input, .pu-set-check input {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  flex: none;
+  border: 2px solid var(--muted);
+  background: var(--card);
+  cursor: pointer;
+}
+.pu-set-radio input { border-radius: 50%; }
+.pu-set-check input { border-radius: 4px; }
+.pu-set-radio input:checked {
+  border-color: var(--ink);
+  background: var(--ink);
+  box-shadow: inset 0 0 0 4px var(--card);
+}
+.pu-set-check input:checked { border-color: var(--ink); background: var(--ink); }
+.pu-set-check input:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 6px;
+  height: 12px;
+  border: solid var(--card);
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+.pu-set-radio input:disabled, .pu-set-check input:disabled {
+  cursor: not-allowed;
+  border-style: dashed;
+}
+.pu-set-radio input:disabled:checked, .pu-set-check input:disabled:checked {
+  border-style: solid;
+  border-color: var(--muted);
+  background: var(--muted);
+}
+.pu-set-radio input:disabled + label, .pu-set-check input:disabled + label { cursor: not-allowed; }
+
+.pu-settings select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-top: 4px;
+  min-height: 40px;
+  padding: 6px 10px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+.pu-settings select option { color: var(--ink); background: var(--card); }
+
+/* Two universes */
+.pu-set-universes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+.pu-set-universe {
+  border: 2px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 8px 16px 12px;
+  min-width: 0;
+}
+.pu-set-universe[data-slot="a"] { border-color: var(--u-a); }
+.pu-set-universe[data-slot="b"] { border-color: var(--u-b); }
+.pu-set-legend { font-weight: 700; font-size: 18px; padding: 0 6px; color: var(--ink); }
+.pu-set-universe[data-slot="a"] .pu-set-legend { color: var(--u-a); }
+.pu-set-universe[data-slot="b"] .pu-set-legend { color: var(--u-b); }
+
+.pu-set-field { margin: 6px 0 8px; min-width: 0; }
+.pu-set-field-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+.pu-set-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--ink);
+}
+.pu-set-field.is-changed .pu-set-value::after {
+  content: " changed";
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--size-small);
+  color: var(--accent);
+}
+
+.pu-settings input[type="text"] {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+}
+.pu-settings input[type="text"]:disabled,
+.pu-settings select:disabled {
+  opacity: 1; /* the browser default dims a disabled select below 4.5:1 */
+  color: var(--muted);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+/* Range: --rule track, thumb in the universe color (custom so both slots look alike). */
+.pu-settings input[type="range"] {
+  --thumb: var(--ink);
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 32px;
+  margin: 6px 0 0;
+  background: transparent;
+  cursor: pointer;
+}
+.pu-set-universe[data-slot="a"] input[type="range"] { --thumb: var(--u-a); }
+.pu-set-universe[data-slot="b"] input[type="range"] { --thumb: var(--u-b); }
+.pu-settings input[type="range"]:disabled { --thumb: var(--muted); cursor: not-allowed; }
+.pu-settings input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 3px; background: var(--rule);
+}
+.pu-settings input[type="range"]::-moz-range-track {
+  height: 6px; border-radius: 3px; background: var(--rule);
+}
+.pu-settings input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px; height: 24px; margin-top: -9px;
+  border-radius: 50%; border: 2px solid var(--card);
+  background: var(--thumb); box-shadow: 0 0 0 1px var(--thumb);
+}
+.pu-settings input[type="range"]::-moz-range-thumb {
+  width: 20px; height: 20px;
+  border-radius: 50%; border: 2px solid var(--card);
+  background: var(--thumb); box-shadow: 0 0 0 1px var(--thumb);
+}
+
+/* Buttons */
+.pu-set-btn {
+  font: inherit;
+  font-size: 16px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
+.pu-set-btn:hover:not(:disabled) { background: var(--panel); border-color: var(--ink); }
+.pu-set-btn:disabled {
+  opacity: 1;
+  color: var(--muted);
+  border-style: dashed;
+  cursor: not-allowed;
+}
+.pu-set-presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.pu-set-preset[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--card);
+  border: 2px solid var(--ink);
+  font-weight: 700;
+}
+.pu-set-universe[data-slot="a"] .pu-set-preset[aria-pressed="true"] { background: var(--u-a); border-color: var(--u-a); }
+.pu-set-universe[data-slot="b"] .pu-set-preset[aria-pressed="true"] { background: var(--u-b); border-color: var(--u-b); }
+.pu-set-preset[aria-pressed="true"]:hover:not(:disabled) { color: var(--card); }
+.pu-set-universe[data-slot="a"] .pu-set-preset[aria-pressed="true"]:hover:not(:disabled) { background: var(--u-a); }
+.pu-set-universe[data-slot="b"] .pu-set-preset[aria-pressed="true"]:hover:not(:disabled) { background: var(--u-b); }
+/* A locked, selected preset stays filled (text on fill keeps its contrast) with a dashed edge. */
+.pu-set-preset[aria-pressed="true"]:disabled {
+  color: var(--card);
+  border-style: dashed;
+  border-color: var(--card);
+  outline: 2px solid var(--muted);
+}
+.pu-set-preset[aria-pressed="true"]:disabled:focus-visible { outline: 3px solid var(--focus); }
+
+.pu-set-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pu-set-status { margin: 0; font-size: var(--size-small); color: var(--muted); }
+.pu-set-status.is-custom { color: var(--accent); font-weight: 600; }
+
+.pu-set-late {
+  border-top: 1px dashed var(--rule);
+  margin-top: 4px;
+  padding-top: 2px;
+}
+.pu-set-late[hidden] { display: none; }
+
+/* One or two universes. */
+.pu-set-count { border: 0; padding: 0; margin: 0 0 6px; min-width: 0; }
+.pu-set-count legend { font-weight: 600; padding: 0; margin-bottom: 2px; color: var(--ink); }
+.pu-set-count-row { display: flex; flex-wrap: wrap; gap: 0 20px; }
+.pu-set-universes.is-one { grid-template-columns: minmax(0, 680px); }
+.pu-set-universe[hidden] { display: none; }
+
+/* Short status after a preset turns the Taylor rule on (15px floor for the room). */
+.pu-set-note {
+  margin: 0 0 4px 30px;
+  font-size: max(15px, var(--size-small));
+  font-weight: 600;
+  color: var(--ink);
+  border-left: 3px solid var(--accent);
+  padding-left: 8px;
+}
+.pu-set-note[hidden] { display: none; }
+
+/* Scoring: the dual mandate. Sliders sit in two columns when there is room. */
+.pu-set-scoring {
+  flex: 1 1 100%;
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  padding: 8px 0 0;
+}
+.pu-set-scoring legend { float: left; width: 100%; font-weight: 600; padding: 0; margin-bottom: 2px; color: var(--ink); }
+.pu-set-scoring legend + * { clear: both; }
+.pu-set-scoring-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 0 32px;
+}
+.pu-set-scoring-body[hidden] { display: none; }
+
+/* Autopilot per team: Off / plain rule / optimal rule (radio group, 15px floor for the room). */
+.pu-set-ap { border: 0; padding: 0; margin: 2px 0 4px; min-width: 0; }
+.pu-set-ap legend {
+  padding: 0;
+  margin-bottom: 0;
+  font-size: max(15px, 1em);
+  font-weight: 600;
+  color: var(--ink);
+}
+.pu-set-ap-row { display: flex; flex-wrap: wrap; gap: 0 20px; }
+.pu-set-ap .pu-set-radio label { font-size: max(15px, 1em); line-height: 1.3; }
+
+/* Optimal policy: the benchmark switch and the optimal rule's options. */
+.pu-set-optimal {
+  flex: 1 1 100%;
+  min-width: 0;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  padding: 8px 0 0;
+}
+.pu-set-optimal legend { float: left; width: 100%; font-weight: 600; padding: 0; margin-bottom: 2px; color: var(--ink); }
+.pu-set-optimal legend + * { clear: both; }
+.pu-set-optimal-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 0 32px;
+}
+
+/* Advanced group inside each universe (and under Optimal policy). */
+.pu-set-adv {
+  margin-top: 8px;
+  border-top: 1px solid var(--rule);
+  padding-top: 4px;
+}
+.pu-set-adv > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink);
+  list-style: none;
+}
+.pu-set-adv > summary::-webkit-details-marker { display: none; }
+.pu-set-adv > summary::before {
+  content: "";
+  flex: none;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 9px;
+  border-color: transparent transparent transparent var(--ink);
+}
+.pu-set-adv[open] > summary::before { transform: rotate(90deg); }
+.pu-set-adv-mark {
+  font-size: var(--size-small);
+  font-weight: 600;
+  color: var(--accent);
+}
+.pu-set-adv-mark[hidden] { display: none; }
+
+/* Share link */
+.pu-set-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: var(--gap);
+}
+.pu-set-share-msg { margin: 0; font-size: var(--size-small); color: var(--ink); }
+.pu-set-link { flex: 1 1 100%; min-width: 0; }
+.pu-set-link[hidden] { display: none; }
+.pu-set-link input[type="text"] { font-family: var(--font-mono); font-size: var(--size-small); }
+
+@media (max-width: 800px) {
+  .pu-set-universes { grid-template-columns: 1fr; }
+}
+@media (max-width: 420px) {
+  .pu-set-universe { padding: 6px 10px 10px; }
+}

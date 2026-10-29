@@ -1,0 +1,175 @@
+/* Macro Control Room: charts over time and the round log. */
+
+/* ---------- charts ---------- */
+.pu-charts { min-width: 0; }
+
+.pu-legend {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  font-size: 15px;
+}
+.pu-legend li { display: flex; align-items: center; gap: 6px; }
+.pu-legend .pu-key { display: inline-block; flex: none; width: 34px; height: 14px; }
+.pu-legend .pu-key.pu-key-wide { width: 40px; height: 15px; }
+
+.pu-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px; /* matches NS_GAP in charts.js */
+}
+@media (max-width: 800px) {
+  .pu-chart-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.pu-chart {
+  margin: 0;
+  min-width: 0;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 8px 8px 4px;
+}
+.pu-chart h3 { margin: 0 0 2px 4px; font-size: 16px; color: var(--ink); }
+.pu-chart h3 [data-tip], .pu-log .pu-tiplabel, .pu-log-caption [data-tip] {
+  text-decoration: underline dotted var(--muted);
+  text-underline-offset: 3px;
+}
+
+/* Universe color by slot. Every chart and log element that carries a
+   universe color sets data-slot="a|b" (or sits inside one); the rules below
+   read --u, so a theme change restyles with no redraw. */
+.pu-charts [data-slot="a"], .pu-log-wrap [data-slot="a"] { --u: var(--u-a); --u-soft: var(--u-a-soft); }
+.pu-charts [data-slot="b"], .pu-log-wrap [data-slot="b"] { --u: var(--u-b); --u-soft: var(--u-b-soft); }
+
+.pu-svg { width: 100%; height: auto; display: block; overflow: visible; font-family: var(--font-sans); }
+.pu-svg text { fill: var(--ink); }
+.pu-svg .pu-tick { fill: var(--muted); font-family: var(--font-mono); }
+.pu-svg .pu-axis-title { fill: var(--muted); }
+.pu-axis { stroke: var(--muted); stroke-width: 1; }
+/* Gridlines are decorative; tick labels carry the values. */
+.pu-grid { stroke: var(--grid); stroke-width: 1; }
+.pu-ref { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 5 4; }
+/* Invisible wide stroke so thin lines are easy to hover. */
+.pu-hit { stroke: transparent; stroke-width: 12px; fill: none; pointer-events: stroke; }
+.pu-svg .pu-ref-label, .pu-svg .pu-shock-label, .pu-svg .pu-round-label {
+  paint-order: stroke;
+  stroke: var(--card);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.pu-svg .pu-ref-label { fill: var(--accent); font-weight: 600; }
+.pu-svg .pu-shock-label { fill: var(--ink); font-weight: 600; }
+/* The event band: a light wash of the muted ink; its label sits above the plot. */
+.pu-shock-band { fill: var(--muted); fill-opacity: 0.16; }
+/* The green zone: a band with drawn edges, and a box on the Phillips trace. */
+.pu-zone { fill: var(--zone-fill); }
+.pu-zone-edge { stroke: var(--zone); stroke-width: 1.25; stroke-dasharray: 4 3; }
+.pu-zone-box { stroke: var(--zone); stroke-width: 1.25; stroke-dasharray: 4 3; }
+.pu-line, .pu-trace { fill: none; stroke: var(--u); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+/* Potential GDP: gray round dots, so it never looks like a no-policy dash. */
+.pu-potential { fill: none; stroke: var(--potential); stroke-width: 3; stroke-dasharray: 0.1 6; stroke-linecap: round; }
+/* No-policy paths: the universe color in long dashes, 3px, under the played line. */
+.pu-nopolicy { fill: none; stroke: var(--u); stroke-width: 3; stroke-dasharray: 12 7; stroke-linecap: butt; stroke-linejoin: round; }
+/* Optimal path (perfect foresight): the universe color, dash-dot, 2.5px, with
+   hollow diamonds, under the played line. Solid is played, long dashes no
+   policy, dots potential GDP, so no two patterns look alike. */
+.pu-optimal { fill: none; stroke: var(--u); stroke-width: 2.5; stroke-dasharray: 14 4 3 4; stroke-linecap: butt; stroke-linejoin: round; }
+.pu-opt-mk { fill: var(--card); stroke: var(--u); stroke-width: 2; }
+/* Interest rates chart: the nominal rate in effect is a dash-dot line in the
+   universe color (long dashes are the no-policy paths, dots potential GDP). */
+.pu-line.pu-rate-nominal { stroke-dasharray: 9 4 2 4; stroke-linecap: butt; }
+/* Legend keys for line patterns that carry no universe color. */
+.pu-key-ink { fill: none; stroke: var(--ink); stroke-width: 3; }
+.pu-key-ink.pu-rate-nominal { stroke-width: 2.5; stroke-dasharray: 9 4 2 4; }
+.pu-key-ink-mk { fill: var(--card); stroke: var(--ink); stroke-width: 2; }
+/* Data markers: open in the card color, filled for the latest round. */
+.pu-mk { fill: var(--card); stroke: var(--u); }
+.pu-mk.is-latest { fill: var(--u); }
+.pu-mk.pu-mk-b.is-latest { stroke: var(--card); }
+.pu-mk-solid { fill: var(--u); stroke: var(--u); }
+/* F and M tags under each chart. */
+.pu-tag-box { fill: var(--u); }
+.pu-svg .pu-tag-text { fill: var(--bg); font-weight: 700; font-family: var(--font-sans); pointer-events: none; }
+.pu-svg .pu-round-label { font-family: var(--font-sans); fill: var(--muted); }
+.pu-svg .pu-round-label.is-latest { font-weight: 700; fill: var(--u); }
+
+/* Legend tags for "Policy took effect" are HTML, so they keep a 13px size. */
+.pu-legend .pu-key-tags { display: inline-flex; gap: 2px; flex: none; }
+.pu-legend .pu-tag {
+  display: inline-block;
+  min-width: 17px;
+  padding: 0 3px;
+  border-radius: 9px;
+  background: var(--u);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+
+/* ---------- round log ---------- */
+.pu-log-wrap {
+  position: relative; /* keeps the screen-reader text inside the scroll box */
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+.pu-log {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--size-small);
+  white-space: nowrap;
+  color: var(--ink);
+}
+.pu-log-caption { margin: 0 0 8px; color: var(--muted); font-size: var(--size-small); }
+.pu-log th, .pu-log td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: left; }
+.pu-log thead th { font-weight: 600; vertical-align: bottom; }
+.pu-log thead tr:first-child th, .pu-log thead tr:first-child td { border-bottom-width: 3px; border-bottom-style: solid; }
+.pu-log .pu-log-blank { border-bottom-color: transparent; }
+.pu-log .pu-log-uname { text-align: center; font-size: 15px; color: var(--u); border-bottom-color: var(--u); }
+.pu-log .num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.pu-log thead .num { font-family: var(--font-sans); }
+.pu-log .mark { text-align: center; }
+.pu-log .pu-log-first { border-left: 2px solid var(--rule); }
+.pu-log tbody th { font-weight: 600; }
+.pu-log .pu-log-none { color: var(--muted); }
+.pu-log .pu-log-event { font-weight: 600; }
+/* Round 4 additions, sized for the back of the room. */
+.pu-log td.pu-log-auto, .pu-log .pu-log-vs, .pu-log td.pu-log-opt { font-size: 15px; }
+/* The optimal plan column: plain ink, set off by a dashed rule on its left. */
+.pu-log td.pu-log-opt { color: var(--ink); border-left: 1px dashed var(--rule); }
+.pu-log td.pu-log-vs { color: var(--ink); font-weight: 600; }
+.pu-log td.in-zone { background: var(--zone-fill); color: var(--ink); box-shadow: inset 3px 0 0 var(--zone); }
+/* Filled and hollow stars differ in shape, not only in color. */
+.pu-log .pu-log-stars { color: var(--ink); letter-spacing: 1px; }
+.pu-log .pu-tag {
+  display: inline-block;
+  min-width: 1.4em;
+  margin: 0 1px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: var(--ink);
+  color: var(--card);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+/* The latest round: a panel wash, bold text and a bar at the row's start. */
+.pu-log tr.is-latest th, .pu-log tr.is-latest td { background-color: var(--panel); font-weight: 700; }
+.pu-log tr.is-latest th { box-shadow: inset 4px 0 0 var(--ink); }
+.pu-log tr.is-latest td.in-zone { background-color: var(--zone-fill); }
+.pu-sr {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}

@@ -1,0 +1,19 @@
+/* Macro Control Room: the hover and tap explanations (tips.js). */
+.pu-tip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 320px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--tip-bg);
+  color: var(--tip-ink);
+  font-size: 14px;
+  line-height: 1.4;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+[data-tip], [data-tip-text] { cursor: help; }
+button[data-tip], input[data-tip], select[data-tip], label[data-tip],
+button[data-tip-text], input[data-tip-text], select[data-tip-text] { cursor: pointer; }
+html.tips-off [data-tip], html.tips-off [data-tip-text] { cursor: inherit; }
+html.tips-off button[data-tip], html.tips-off button[data-tip-text] { cursor: pointer; }

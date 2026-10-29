@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Charts harness</title>
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="../app.css" />
+    <link rel="stylesheet" href="../tips.css" />
+    <link rel="stylesheet" href="../charts.css" />
+    <style>
+      body { background: var(--bg); color: var(--ink); }
+      .harness { max-width: 1240px; margin: 0 auto; padding: 12px; font-family: var(--font-sans); }
+      .harness section { margin: 0 0 24px; }
+      .harness h2 { font-size: 18px; margin: 0 0 8px; }
+      .note { color: var(--muted); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+      .theme-bar { display: flex; gap: 8px; align-items: center; margin: 0 0 12px; font-size: 14px; }
+      .theme-bar button { font: inherit; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--card); color: var(--ink); cursor: pointer; }
+      .theme-bar button[aria-pressed="true"] { background: var(--ink); color: var(--card); }
+    </style>
+  </head>
+  <body>
+    <main class="harness">
+      <p class="note">Harness: ?n=rounds played&amp;rounds=8&amp;event=oil&amp;mode=event&amp;theme=light|dark&amp;autopilot=monetary,fiscal&amp;choices={"1":{"spending":2,"rate":-1}}&amp;dump=1&amp;one=1 (one universe)&amp;a=keynesian&amp;b=neoclassical&amp;nopolicy=1 (no choices)&amp;real=1&amp;scoreoff=1&amp;optimal=1 (optimal path from PU.optimal.benchmark after round 1)&amp;autopilot=monetary:optimal,fiscal:optimal</p>
+      <div class="theme-bar" role="group" aria-label="Theme">
+        <span>Theme:</span>
+        <button type="button" data-theme-set="">System</button>
+        <button type="button" data-theme-set="light">Light</button>
+        <button type="button" data-theme-set="dark">Dark</button>
+      </div>
+      <section><h2>Over time</h2><div id="charts"></div></section>
+      <section><h2>Phillips curve</h2><div id="phillips"></div></section>
+      <section><h2>Round log</h2><div id="log"></div></section>
+      <pre id="dump" class="note"></pre>
+    </main>
+    <script src="../engine.js"></script>
+    <script src="../scales.js"></script>
+    <script src="../tips.js"></script>
+    <script src="../optimal.js"></script>
+    <script src="../charts.js"></script>
+    <script src="../log.js"></script>
+    <script>
+      (function () {
+        var q = new URLSearchParams(location.search);
+        // Theme switch: only data-theme on <html> changes; nothing is redrawn.
+        function setTheme(t) {
+          if (t) document.documentElement.setAttribute('data-theme', t);
+          else document.documentElement.removeAttribute('data-theme');
+          document.querySelectorAll('[data-theme-set]').forEach(function (b) {
+            b.setAttribute('aria-pressed', String(b.getAttribute('data-theme-set') === (t || '')));
+          });
+        }
+        document.querySelectorAll('[data-theme-set]').forEach(function (b) {
+          b.addEventListener('click', function () { setTheme(b.getAttribute('data-theme-set')); });
+        });
+        setTheme(q.get('theme') || '');
+        var rounds = parseInt(q.get('rounds') || '8', 10);
+        var n = Math.min(rounds, parseInt(q.get('n') || String(rounds), 10));
+        var choices = { 1: { spending: 2, rate: -1 }, 2: { taxes: -1, rate: 0.5 } };
+        if (q.get('nopolicy')) choices = {};
+        try { if (q.get('choices')) choices = JSON.parse(q.get('choices')); } catch (e) { /* keep default */ }
+        // autopilot=monetary, fiscal, or monetary,fiscal; a mode after a colon
+        // (monetary:optimal, fiscal:optimal, monetary:taylor, fiscal:balanced).
+        var ap = { monetary: false, fiscal: false };
+        (q.get('autopilot') || '').split(',').forEach(function (x) {
+          var kv = x.split(':');
+          if (kv[0] === 'monetary' || kv[0] === 'fiscal') ap[kv[0]] = kv[1] || true;
+        });
+        var P = PU.engine.PRESETS, pa = q.get('a') || 'keynesian', pb = q.get('b') || 'neoclassical';
+        var unis = { a: P[pa] };
+        if (!q.get('one')) unis.b = P[pb];
+        var game = PU.engine.createGame({
+          rounds: rounds,
+          shockMode: q.get('mode') || 'event',
+          event: q.get('event') || 'oil',
+          autopilot: ap,
+          scoring: { on: !q.get('scoreoff') },
+          universes: unis
+        });
+        // As ui.js does: the benchmark per universe right after round 1.
+        var optimal = null, benches = {};
+        for (var r = 1; r <= n; r++) {
+          game.step(choices[r] || {});
+          if (r === 1 && q.get('optimal') && PU.optimal) {
+            optimal = {};
+            game.keys.forEach(function (k) {
+              var b = PU.optimal.benchmark(game, k);
+              benches[k] = b;
+              optimal[k] = { history: b.optimal.history, plan: b.optimal.plan };
+            });
+          }
+        }
+        window.__optimal = optimal;
+        var base = {
+          names: { a: P[pa].label || pa, b: P[pb].label || pb }, colors: { a: PU.COLORS.a, b: PU.COLORS.b },
+          zone: game.scoring.zone, scoringOff: !!q.get('scoreoff'), showRealRate: !!q.get('real'),
+          optimal: optimal
+        };
+        function o(extra) { var x = {}; for (var k in base) x[k] = base[k]; for (k in extra) x[k] = extra[k]; return x; }
+        var c = document.getElementById('charts'), p = document.getElementById('phillips'), l = document.getElementById('log');
+        PU.charts.render(c, game, o({ only: 'series' }));
+        PU.charts.render(c, game, o({ only: 'series' })); // idempotence check
+        PU.charts.render(p, game, o({ only: 'phillips' }));
+        PU.log.render(l, game, base);
+        PU.log.render(l, game, base);
+        window.__game = game;
+        if (q.get('dump')) {
+          var lines = [];
+          game.keys.forEach(function (k) {
+            game.universes[k].history.forEach(function (h) {
+              lines.push(k + ' r' + h.round + ' y=' + h.y.toFixed(0) + ' pot=' + h.potential + ' u=' + h.unemployment.toFixed(2) +
+                ' inf=' + h.inflation.toFixed(2) + ' p=' + h.p.toFixed(2) + ' F=' + h.fiscalArrived + ' M=' + h.monetaryArrived +
+                ' stars=' + h.stars + ' rate=' + h.rate + '/' + h.rateLevel + ' auto=' + h.autoRate + '/' + Math.round(h.autoSpending) +
+                ' shock=' + h.shock + ' i=' + h.nominalRate + ' r=' + (h.realRate != null ? h.realRate.toFixed(2) : '') +
+                ' pie=' + (h.expectedInflation != null ? h.expectedInflation.toFixed(2) : ''));
+            });
+            (game.noPolicy(k) || []).forEach(function (h) {
+              lines.push(k + ' no-policy r' + h.round + ' y=' + h.y.toFixed(0) + ' u=' + h.unemployment.toFixed(2) +
+                ' inf=' + h.inflation.toFixed(2) + ' p=' + h.p.toFixed(2));
+            });
+          });
+          document.getElementById('dump').textContent = lines.join('\n');
+        }
+      })();
+    </script>
+  </body>
+</html>

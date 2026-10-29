@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Macro Control Room</title>
+    <link rel="stylesheet" href="tokens.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="tips.css" />
+    <link rel="stylesheet" href="settings.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="charts.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" aria-label="Game controls">
+        <div class="side-top">
+          <div class="title-row">
+            <h1>Macro Control Room</h1>
+            <div class="title-buttons">
+              <button type="button" id="theme-toggle" class="settings-btn" aria-pressed="false" data-tip="theme">Dark mode</button>
+              <button type="button" id="open-settings" class="settings-btn" aria-haspopup="dialog" data-tip="settings">Settings</button>
+              <button type="button" id="tips-toggle" class="settings-btn" aria-pressed="true" data-tip="tipsToggle">Tips: on</button>
+              <button type="button" id="open-tour" class="settings-btn" data-tip="tutorial">Tutorial</button>
+            </div>
+          </div>
+          <div class="mission">
+            <p id="event-line" class="event-line" data-tip="event"></p>
+            <p class="mission-line" data-tip="mission">Goal: get unemployment and inflation into the <span class="zone-word" data-tip="greenZone">green zone</span> and keep them there.</p>
+            <p id="round-status" class="round-status" data-tip="round"></p>
+            <div id="scores" class="scores" data-tip="stars"></div>
+            <p id="limit-note" class="limit-note" data-tip="atLimit" hidden></p>
+            <p id="predict-score" class="predict-score" data-tip="predictScore" hidden></p>
+          </div>
+        </div>
+
+        <section id="controls" class="side-controls" aria-label="Your policy"></section>
+      </aside>
+
+      <main id="main" class="main">
+        <div class="tabs" role="tablist" aria-label="Views">
+          <button type="button" role="tab" id="tab-dashboard" data-tip="tabDashboard" aria-controls="panel-dashboard" aria-selected="true">Dashboard</button>
+          <button type="button" role="tab" id="tab-time" data-tip="tabTime" aria-controls="panel-time" aria-selected="false" tabindex="-1">Over time</button>
+          <button type="button" role="tab" id="tab-phillips" data-tip="tabPhillips" aria-controls="panel-phillips" aria-selected="false" tabindex="-1">Phillips curve</button>
+          <button type="button" role="tab" id="tab-log" data-tip="tabLog" aria-controls="panel-log" aria-selected="false" tabindex="-1">Round log</button>
+          <button type="button" role="tab" id="tab-results" data-tip="tabResults" aria-controls="panel-results" aria-selected="false" tabindex="-1" hidden>Results</button>
+        </div>
+
+        <section id="panel-dashboard" class="tab-panel" role="tabpanel" aria-labelledby="tab-dashboard">
+          <section id="predict" class="predict" aria-labelledby="predict-heading" hidden>
+            <h2 id="predict-heading" data-tip="predict">Predict next round</h2>
+            <div id="predict-grid" class="predict-grid"></div>
+            <p id="predict-result" class="predict-result" role="status" aria-live="polite"></p>
+          </section>
+          <div class="universes">
+            <section id="universe-a" class="universe" data-slot="a" aria-labelledby="name-a">
+              <h2 id="name-a" class="universe-name" data-tip="universeA">Universe A</h2>
+              <div id="gauges-a" class="gauges"></div>
+              <div id="adas-a" class="adas"></div>
+            </section>
+            <section id="universe-b" class="universe" data-slot="b" aria-labelledby="name-b">
+              <h2 id="name-b" class="universe-name" data-tip="universeB">Universe B</h2>
+              <div id="gauges-b" class="gauges"></div>
+              <div id="adas-b" class="adas"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="panel-time" class="tab-panel" role="tabpanel" aria-labelledby="tab-time" hidden>
+          <div id="charts"></div>
+        </section>
+
+        <section id="panel-phillips" class="tab-panel" role="tabpanel" aria-labelledby="tab-phillips" hidden>
+          <div id="phillips"></div>
+        </section>
+
+        <section id="panel-log" class="tab-panel" role="tabpanel" aria-labelledby="tab-log" hidden>
+          <div id="log"></div>
+        </section>
+
+        <section id="panel-results" class="tab-panel" role="tabpanel" aria-labelledby="tab-results" hidden>
+          <div id="end"></div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="event-dialog" class="event-dialog" aria-labelledby="event-headline">
+      <p class="event-kicker">Breaking news</p>
+      <h2 id="event-headline"></h2>
+      <p id="event-what"></p>
+      <p class="event-mission">Your goal: get unemployment and inflation back into the green zone
+        (unemployment 4.5% to 5.5%, inflation 1% to 3%) and hold them there until the last round.
+        Team Fiscal advises on spending and taxes. Team Monetary advises on the interest rate.</p>
+      <div class="event-actions">
+        <button type="button" id="event-begin" class="primary-btn">The event hits: begin</button>
+        <button type="button" id="event-tour" class="secondary-btn">Begin with a guided tour</button>
+        <button type="button" id="event-settings" class="secondary-btn" data-tip="settings">Settings first</button>
+      </div>
+    </dialog>
+
+    <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-heading">
+      <section id="settings">
+        <div class="dialog-head">
+          <h2 id="settings-heading">Settings</h2>
+          <div class="dialog-head-actions">
+            <button type="button" id="unlock-settings" class="secondary-btn" hidden data-tip-text="Settings are locked during a game so its results always match one set of rules. This ends the current game and starts a new one, so you can change them.">Start a new game to change settings</button>
+            <button type="button" id="close-settings" class="close-btn">Done</button>
+          </div>
+        </div>
+      </section>
+    </dialog>
+
+    <p id="live" class="visually-hidden" role="status" aria-live="polite"></p>
+
+    <script src="engine.js"></script>
+    <script src="scales.js"></script>
+    <script src="tips.js"></script>
+    <script src="optimal.js"></script>
+    <script src="settings.js"></script>
+    <script src="gauges.js"></script>
+    <script src="adas.js"></script>
+    <script src="charts.js"></script>
+    <script src="log.js"></script>
+    <script src="ui.js"></script>
+    <script src="tour.js"></script>
+  </body>
+</html>

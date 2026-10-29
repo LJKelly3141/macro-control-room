@@ -1,0 +1,141 @@
+/*
+ * Macro Control Room: design tokens, light and dark.
+ *
+ * Theme: <html data-theme="light"> or "dark" forces one; with no data-theme
+ * the viewer's system setting decides. Every color in the app comes from
+ * here, and SVG drawings use these through CSS (fill: var(--...)), so a theme
+ * change needs no redraw. Contrast, checked 2026-10-28: text 4.5:1 or more on
+ * its background (most 7:1+), borders, tracks and chart lines 3:1 or more.
+ */
+:root {
+  --bg: #ffffff;
+  --panel: #f3f4f6;
+  --card: #ffffff;
+  --ink: #14161a;
+  --muted: #4b5058;
+  --rule: #7a808a;        /* control borders: 3:1+ on bg and panel */
+  --grid: #d6d9de;        /* decorative gridlines only, never the only cue */
+  --accent: #b00d30;
+  --focus: #0070a0;
+  --u-a: #0070a0;
+  --u-b: #007a58;
+  --u-a-soft: #cfe6f2;
+  --u-b-soft: #cdeee1;
+  --potential: #4b5058;
+  --up: #0b6b2b;          /* moves that push AD right */
+  --down: #a50d2d;        /* moves that pull AD left */
+  --zone: #1a7f37;        /* green zone ink */
+  --zone-fill: #d9f2e2;   /* green zone band */
+  --tip-bg: #14161a;
+  --tip-ink: #ffffff;
+  --backdrop: rgba(20, 22, 26, 0.55);
+  --team-fiscal: #7a4e00;
+  --team-monetary: #4b3a8f;
+
+  /* The policy console (style B). */
+  --con-bg: #e6e9ee;
+  --con-border: #4b5058;
+  --con-ink: #14161a;
+  --con-sub: #4b5058;
+  --con-knob: #ffffff;
+  --con-knob-ink: #14161a;
+  --con-ind: #ffffff;
+  --con-readout: #14161a;
+  --con-up: #0b6b2b;
+  --con-down: #a50d2d;
+  --con-track: #7a808a;
+  --con-go: #14161a;
+  --con-go-ink: #ffffff;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --size-body: 17px;
+  --size-small: 14px;
+  --radius: 8px;
+  --gap: 16px;
+  color-scheme: light;
+}
+
+/* Dark: forced, or from the system setting when no theme is forced. */
+:root[data-theme="dark"] {
+  --bg: #121418;
+  --panel: #1b1e24;
+  --card: #1b1e24;
+  --ink: #eef0f3;
+  --muted: #b4bac4;
+  --rule: #7d8592;
+  --grid: #343a44;
+  --accent: #ff8a9a;
+  --focus: #5cc0ee;
+  --u-a: #5cc0ee;
+  --u-b: #45d3a0;
+  --u-a-soft: #173847;
+  --u-b-soft: #143d2f;
+  --potential: #b4bac4;
+  --up: #5ee38a;
+  --down: #ff8a9a;
+  --zone: #5ee38a;
+  --zone-fill: #173a24;
+  --tip-bg: #eef0f3;
+  --tip-ink: #14161a;
+  --backdrop: rgba(0, 0, 0, 0.65);
+  --team-fiscal: #f2b45a;
+  --team-monetary: #b9a8ff;
+
+  --con-bg: #1b1e24;
+  --con-border: #8b93a1;
+  --con-ink: #ffffff;
+  --con-sub: #c9ced6;
+  --con-knob: #2a2f38;
+  --con-knob-ink: #ffffff;
+  --con-ind: #0d0f12;
+  --con-readout: #ffd23f;
+  --con-up: #5ee38a;
+  --con-down: #ff8a9a;
+  --con-track: #5b6270;
+  --con-go: #ffd23f;
+  --con-go-ink: #14161a;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121418;
+    --panel: #1b1e24;
+    --card: #1b1e24;
+    --ink: #eef0f3;
+    --muted: #b4bac4;
+    --rule: #7d8592;
+    --grid: #343a44;
+    --accent: #ff8a9a;
+    --focus: #5cc0ee;
+    --u-a: #5cc0ee;
+    --u-b: #45d3a0;
+    --u-a-soft: #173847;
+    --u-b-soft: #143d2f;
+    --potential: #b4bac4;
+    --up: #5ee38a;
+    --down: #ff8a9a;
+    --zone: #5ee38a;
+    --zone-fill: #173a24;
+    --tip-bg: #eef0f3;
+    --tip-ink: #14161a;
+    --backdrop: rgba(0, 0, 0, 0.65);
+    --team-fiscal: #f2b45a;
+    --team-monetary: #b9a8ff;
+
+    --con-bg: #1b1e24;
+    --con-border: #8b93a1;
+    --con-ink: #ffffff;
+    --con-sub: #c9ced6;
+    --con-knob: #2a2f38;
+    --con-knob-ink: #ffffff;
+    --con-ind: #0d0f12;
+    --con-readout: #ffd23f;
+    --con-up: #5ee38a;
+    --con-down: #ff8a9a;
+    --con-track: #5b6270;
+    --con-go: #ffd23f;
+    --con-go-ink: #14161a;
+    color-scheme: dark;
+  }
+}

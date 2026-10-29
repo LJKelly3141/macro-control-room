@@ -1,0 +1,126 @@
+/* Macro Control Room: gauges and AD/AS panel (gauges.js, adas.js).
+ *
+ * Every color is a token from tokens.css, so the light and dark themes and a
+ * live theme switch need no redraw. The universe color comes from data-slot
+ * on .pu-gauges (gauges.js) and .pu-adas-svg (adas.js).
+ */
+
+.gauges { container-type: inline-size; }
+.pu-gauges, .pu-adas-svg { --u-color: var(--ink); }
+.pu-gauges[data-slot="a"], .pu-adas-svg[data-slot="a"] { --u-color: var(--u-a); }
+.pu-gauges[data-slot="b"], .pu-adas-svg[data-slot="b"] { --u-color: var(--u-b); }
+
+/* Invisible, wider hover targets for thin lines and small dots. */
+.pu-hit { fill: none; stroke: transparent; pointer-events: stroke; }
+.pu-hit-fill { fill: transparent; stroke: none; pointer-events: all; }
+
+.pu-gauge-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr));
+  gap: 10px;
+}
+@container (max-width: 400px) {
+  .pu-gauge-grid { gap: 6px; }
+  .pu-gauges .pu-gauge-value { font-size: 26px; }
+  .pu-gauges .pu-gauge-zone, .pu-gauges .pu-gauge-change { white-space: normal; font-size: 13px; }
+  .pu-gauges .pu-gauge-np, .pu-gauges .pu-gauge-opt { white-space: normal; }
+}
+/* One universe at full width: the two dials sit side by side and grow. */
+@container (min-width: 640px) {
+  .pu-gauge-grid { gap: 16px; }
+  .pu-gauge { padding: 10px 12px 12px; }
+  .pu-gauges .pu-gauge-label { font-size: 19px; }
+  .pu-gauges .pu-dial { max-width: 340px; }
+  .pu-gauges .pu-gauge-value { font-size: 40px; }
+  .pu-gauges .pu-gauge-zone, .pu-gauges .pu-gauge-np, .pu-gauges .pu-gauge-opt { font-size: 17px; }
+  .pu-gauges .pu-gauge-change, .pu-gauges .pu-change-arrow { font-size: 15px; }
+}
+
+.pu-gauge {
+  margin: 0;
+  padding: 6px 6px 8px;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  min-width: 0;
+  text-align: center;
+  cursor: help;
+}
+.pu-gauge:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.pu-gauge-label { font-size: 16px; font-weight: 700; line-height: 1.2; color: var(--ink); }
+.pu-dial { display: block; width: 100%; max-width: 220px; margin: 0 auto; overflow: visible; }
+.pu-dial-track { fill: none; stroke: var(--rule); }
+.pu-dial-band { fill: var(--zone-fill); stroke: var(--zone); stroke-width: 2; stroke-linejoin: round; }
+.pu-dial-mark { stroke: var(--ink); stroke-width: 2.5; }
+/* --dial-k (set by gauges.js) keeps dial text at 13px or more on screen when the dial is narrower than its viewBox. */
+.pu-dial-marklabel { font: 600 calc(13px * max(1, var(--dial-k, 1))) var(--font-sans); fill: var(--ink); }
+.pu-dial-end { font: calc(13px * max(1, var(--dial-k, 1))) var(--font-sans); fill: var(--muted); }
+.pu-dial-needle { stroke: var(--u-color); stroke-width: 4; stroke-linecap: round; }
+.pu-dial-hub { fill: var(--u-color); stroke: var(--card); stroke-width: 1.5; }
+
+.pu-gauge-cap { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 1.2; }
+.pu-gauge-value {
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--u-color);
+}
+.pu-gauge-zone { font-size: var(--size-small); font-weight: 600; white-space: nowrap; }
+.pu-zone-in { color: var(--zone); }
+.pu-zone-out { color: var(--down); }
+.pu-zone-mark { margin-right: 4px; font-weight: 700; }
+.pu-gauge-change { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.pu-change-arrow { margin-right: 3px; font-size: 13px; color: var(--ink); }
+.pu-gauge-off { font-size: 13px; color: var(--down); font-weight: 600; }
+
+/* No-policy comparison: a dashed needle in --muted (7:1+ on the card in both
+   themes) and a caption line. The swatch repeats the dash so the line and the
+   needle read as one thing without color. */
+.pu-dial-np-needle { stroke: var(--muted); stroke-width: 3; vector-effect: non-scaling-stroke; stroke-dasharray: 6 4; stroke-linecap: butt; }
+.pu-dial-np-end { fill: var(--card); stroke: var(--muted); stroke-width: 2.5; }
+.pu-gauge-np { font-size: 15px; font-weight: 600; color: var(--muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.pu-np-swatch { display: inline-block; width: 18px; height: 0; border-top: 3px dashed var(--muted); }
+
+/* Optimal path: a solid --ink diamond on the arc (not a needle). --ink is
+   3:1+ on the track (--rule) and the green band in both themes; the --card
+   edge keeps it apart from the needle and the target mark. The caption line
+   repeats the diamond so the two read as one thing without color. */
+.pu-dial-opt-mark { fill: var(--ink); stroke: var(--card); stroke-width: 1.5; stroke-linejoin: round; }
+.pu-gauge-cmp { display: flex; flex-wrap: wrap; justify-content: center; gap: 0 14px; }
+.pu-gauge-opt { font-size: 15px; font-weight: 600; color: var(--muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.pu-opt-swatch { display: inline-block; width: 9px; height: 9px; margin: 0 2px; background: var(--ink); transform: rotate(45deg); }
+
+/* AD/AS panel */
+.adas { margin-top: 10px; min-width: 0; }
+.pu-adas-svg { display: block; width: 100%; height: auto; font-family: var(--font-sans); }
+.pu-adas-svg:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.pu-adas-frame { fill: var(--card); stroke: var(--rule); }
+.pu-adas-grid { stroke: var(--grid); stroke-width: 1; }
+.pu-adas-tick { stroke: var(--muted); stroke-width: 1; }
+.pu-adas-axis text { font-size: 13px; fill: var(--muted); }
+.pu-adas-axis .pu-adas-title { font-size: 15px; fill: var(--ink); font-weight: 700; }
+.pu-adas-curve { fill: none; stroke: var(--u-color); stroke-width: 2.5; }
+.pu-adas-lras { fill: none; stroke: var(--potential); stroke-width: 2.5; }
+/* Last round: thinner and dashed, full strength so it still reaches 3:1. */
+.pu-adas-old { stroke-width: 1.5; stroke-dasharray: 5 4; }
+.pu-adas-trail-line { fill: none; stroke: var(--rule); stroke-width: 1.5; }
+.pu-adas-past { fill: var(--u-color); stroke: var(--u-color); stroke-width: 1.5; }
+.pu-adas-now { fill: var(--u-color); stroke: var(--ink); stroke-width: 2; }
+.pu-adas-roundnum { font-size: 13px; fill: var(--muted); }
+.pu-adas-label { font-size: 15px; font-weight: 700; fill: var(--ink); }
+.pu-adas-label-lras { fill: var(--potential); }
+.pu-adas-key { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+/* Wide panel (one universe at full width): bigger tick labels and key for the back of the room. */
+.pu-adas-wide .pu-adas-axis text { font-size: 15px; }
+.pu-adas-wide .pu-adas-axis .pu-adas-title { font-size: 17px; }
+.pu-adas-wide .pu-adas-roundnum { font-size: 15px; }
+.pu-adas-key-wide { font-size: 15px; }
+/* No-policy point: a hollow ring and its label. */
+.pu-adas-np-ring { fill: none; stroke: var(--muted); stroke-width: 2.5; }
+.pu-adas-np-label { font-size: 15px; font-weight: 700; fill: var(--muted); }
+/* Optimal point: a small solid --ink diamond with a --card edge, and its label. */
+.pu-adas-opt-mark { fill: var(--ink); stroke: var(--card); stroke-width: 1.5; stroke-linejoin: round; }
+.pu-adas-opt-label { font-size: 15px; font-weight: 700; fill: var(--ink); }
+/* Halo behind labels inside the plot, in the plot's own background. */
+.pu-adas-label, .pu-adas-roundnum, .pu-adas-np-label, .pu-adas-opt-label { paint-order: stroke; stroke: var(--card); stroke-width: 3px; stroke-linejoin: round; }

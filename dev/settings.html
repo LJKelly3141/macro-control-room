@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Settings harness</title>
+    <link rel="stylesheet" href="../tokens.css" />
+    <link rel="stylesheet" href="../app.css" />
+    <link rel="stylesheet" href="../tips.css" />
+    <link rel="stylesheet" href="../settings.css" />
+    <style>
+      body { margin: 0; background: var(--panel); color: var(--ink); }
+      .frame { max-width: 1100px; margin: 16px auto; background: var(--card); color: var(--ink); border: 1px solid var(--rule); border-radius: var(--radius); }
+      .frame #settings { padding: 12px 16px 16px; }
+      .dev { max-width: 1100px; margin: 0 auto; padding: 0 16px; }
+    </style>
+  </head>
+  <body>
+    <!-- Stands in for the settings dialog in index.html (up to 1100px wide). -->
+    <div class="frame">
+      <section id="settings" aria-labelledby="settings-heading">
+        <h2 id="settings-heading">Settings</h2>
+      </section>
+    </div>
+    <div class="dev">
+      <p>
+        <button type="button" id="lock">Lock</button>
+        <button type="button" id="unlock">Unlock</button>
+        <button type="button" id="theme-light">Light</button>
+        <button type="button" id="theme-dark">Dark</button>
+        <button type="button" id="theme-system">System</button>
+      </p>
+      <p id="width"></p>
+      <p id="game" style="overflow-wrap: anywhere; font-size: 13px;"></p>
+      <pre id="out" style="white-space: pre-wrap; font-size: 13px;"></pre>
+      <p id="url" style="word-break: break-all; font-size: 13px;"></p>
+    </div>
+    <script src="../engine.js"></script>
+    <script src="../optimal.js"></script>
+    <script src="../scales.js"></script>
+    <script src="../tips.js"></script>
+    <script src="../settings.js"></script>
+    <script>
+      (function () {
+        var out = document.getElementById('out');
+        function show(cfg) {
+          out.textContent = JSON.stringify(cfg, null, 2);
+          document.getElementById('url').textContent = location.search;
+          document.getElementById('width').textContent =
+            'scrollWidth ' + document.documentElement.scrollWidth + ' / innerWidth ' + window.innerWidth;
+          // The engine takes the config as is once 'random' is resolved to an event.
+          var opts = JSON.parse(JSON.stringify(cfg));
+          if (opts.event === 'random') opts.event = PU.engine.EVENTS[0];
+          var game = PU.engine.createGame(opts);
+          game.step({ spending: 1, taxes: 0, rate: -0.5, supply: 0 });
+          var rec = game.universes.a.history[1];
+          document.getElementById('game').textContent = 'createGame ok: round ' + game.round +
+            ' of ' + game.rounds + ', mode ' + game.shockMode + ', A shock ' + rec.shock +
+            ', universes ' + cfg.universeCount +
+            ', A fiscal lag ' + game.universes.a.settings.fiscalLag +
+            ', A credibility ' + game.universes.a.settings.credibility +
+            ', A rateSensitivity ' + game.universes.a.settings.rateSensitivity +
+            ', A real rate ' + rec.realRate +
+            ', autopilot ' + JSON.stringify(game.autopilot) +
+            ', scoring ' + JSON.stringify(game.scoring) +
+            ', A stars ' + rec.stars + ', A autoRate ' + rec.autoRate +
+            ', A autoRateMode ' + rec.autoRateMode + ', A autoFiscalMode ' + rec.autoFiscalMode +
+            ', optimalOpts ' + JSON.stringify(game.optimalOpts) +
+            ', showRealRate ' + cfg.showRealRate + ', predictions ' + cfg.predictions;
+        }
+        show(PU.settings.mount(document.getElementById('settings'), { onChange: show }));
+        if (/[?&]lock=1/.test(location.search)) PU.settings.lock(true);
+        document.getElementById('lock').onclick = function () { PU.settings.lock(true); };
+        document.getElementById('unlock').onclick = function () { PU.settings.lock(false); };
+        // Theme: set data-theme on <html> only; the panel restyles with no redraw.
+        function theme(t) {
+          if (t) document.documentElement.setAttribute('data-theme', t);
+          else document.documentElement.removeAttribute('data-theme');
+        }
+        var m = /[?&]theme=(light|dark)/.exec(location.search);
+        if (m) theme(m[1]);
+        document.getElementById('theme-light').onclick = function () { theme('light'); };
+        document.getElementById('theme-dark').onclick = function () { theme('dark'); };
+        document.getElementById('theme-system').onclick = function () { theme(null); };
+      })();
+    </script>
+  </body>
+</html>
