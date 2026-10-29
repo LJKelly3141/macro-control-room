@@ -1,2 +1,6 @@
 .DS_Store
 node_modules/
+
+# Paper materials kept off GitHub: the chat transcript and copies of published articles.
+paper/transcript/
+paper/references/pdf/
