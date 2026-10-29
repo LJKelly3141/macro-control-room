@@ -131,12 +131,32 @@ test('the game ends after its rounds', () => {
 });
 
 test('welfare: after a demand drop, stimulus helps the Keynesian universe far more than the neoclassical one', () => {
-  const g = E.createGame({ rounds: 12, shockMode: 'event', event: 'demand_drop', universes: { k: E.PRESETS.keynesian, n: E.PRESETS.neoclassical } });
-  const plan = { 2: { spending: 3, rate: -0.5 } };
-  while (!g.isOver()) g.step(plan[g.round + 1] || {});
+  // A stimulus that is wound back as the slump fades: the optimal rule's
+  // spending, with the real rate held at neutral (monetary policy off).
+  require('../optimal.js');
+  const g = E.createGame({ rounds: 12, shockMode: 'event', event: 'demand_drop', autopilot: { fiscal: 'optimal', monetary: 'neutral' },
+    universes: { k: E.PRESETS.keynesian, n: E.PRESETS.neoclassical } });
+  while (!g.isOver()) g.step({});
   const s = g.summary();
-  assert.ok(s.k.welfare > 50 && s.k.won, `Keynesian welfare ${s.k.welfare}`);
+  assert.ok(s.k.welfare > 20 && s.k.won, `Keynesian welfare ${s.k.welfare}`);
   assert.ok(s.k.welfare > s.n.welfare + 30, `Keynesian ${s.k.welfare} vs neoclassical ${s.n.welfare}`);
+});
+
+test('events fade: a stimulus left in place after the slump fades overheats the economy', () => {
+  const play = (persistence) => {
+    const g = E.createGame({ rounds: 12, shockMode: 'event', event: 'demand_drop', persistence, universes: { k: E.PRESETS.keynesian } });
+    const plan = { 2: { spending: 3, rate: -0.5 } };
+    while (!g.isOver()) g.step(plan[g.round + 1] || {});
+    return g;
+  };
+  const fading = play(0.9), permanent = play(1);
+  assert.ok(permanent.summary().k.won, 'against a permanent slump the stimulus wins');
+  assert.ok(!fading.summary().k.won, 'against a fading slump, never winding it back loses');
+  const h = fading.universes.k.history;
+  assert.ok(h[12].unemployment < 5 && h[12].inflation > 2, `round 12: u ${h[12].unemployment}, pi ${h[12].inflation}`);
+  // The shock itself shrinks to 90% a round.
+  const u = fading.universes.k;
+  assert.ok(Math.abs(u.shockAd - E.SHOCKS.demand_drop.ad * Math.pow(0.9, 11)) < 1e-6, `shock left ${u.shockAd}`);
 });
 
 test('welfare: the wrong policy scores below zero, and the loss is quadratic', () => {
@@ -388,7 +408,7 @@ test('no preset reaches a curve limit, with no policy or the Taylor rule, over 1
 
 test('a path pushed past a curve limit is flagged', () => {
   const s = Object.assign({}, E.PRESETS.monetarist, { credibility: 0 });
-  const g = E.createGame({ rounds: 40, shockMode: 'event', event: 'boom', noBaseline: true, universes: { a: s } });
+  const g = E.createGame({ rounds: 40, shockMode: 'event', event: 'boom', persistence: 1, noBaseline: true, universes: { a: s } });
   while (!g.isOver()) g.step({});
   assert.ok(g.universes.a.history.some(r => r.atLimit), 'adaptive expectations with the rate held should run into a limit');
 });

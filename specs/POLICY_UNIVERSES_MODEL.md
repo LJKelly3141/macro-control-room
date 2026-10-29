@@ -39,10 +39,24 @@ curve gives a slope near 0.5.
    economy (the Taylor principle).
 3. **The event** (round 1 in the default game): confidence collapses, AD $-350$; spending
    boom, AD $+250$; oil spike, SRAS $-800$; new technology, potential $+200$ and AD $+100$.
+   **Events fade.** Each round, the part of a demand or cost shock still in place shrinks to
+   $\rho$ times what it was ($\rho = 0.9$ by default, adjustable from 0.5 to 1 in Settings;
+   1 means permanent): confidence returns and oil prices come back down. At 0.9, half the
+   shock is gone after about 7 rounds, so a stimulus or a rate cut that fought it has to be
+   wound back as it fades. A gain in potential GDP is permanent.
 4. **Policy chosen this round is queued.** Fiscal: $\Delta A = 50m \times$ spending steps
    $- 0.75 \times 50m \times$ tax steps ($m$ = multiplier). Monetary: the nominal rate moves
    in 25 basis point steps. Each policy arrives over two rounds, half after its lag and half
    the round after (fiscal lag 1, monetary lag 0 by default).
+   **Why fiscal policy waits and monetary policy does not.** Each round is one decision by the
+   class. The textbook splits a policy lag into the *inside lag* (deciding and enacting) and
+   the *outside lag* (the economy responding). A spending or tax change still has to pass
+   Congress, a long inside lag, so it starts the round after it is chosen. A rate change is
+   decided at once, a short inside lag, but borrowing and spending respond slowly, a long
+   outside lag, which the two-round phase-in carries. Making monetary policy wait a round as
+   well was tested (2026-10-28): it brings back the Taylor rule's swings, and the rule does
+   worse than no policy in most cases, which is Friedman's point about lags but would leave
+   the classroom with an autopilot that does not work.
 5. **Arrivals and expected policy.** Arriving policy shifts AD. A share $x$ of each policy's
    effect on output is cancelled and shows up in prices instead (the "share of policy people
    expect": rational expectations).
@@ -52,7 +66,8 @@ curve gives a slope near 0.5.
 8. **Scoring: welfare compared with no policy** (if on). Each round's loss is the dual
    mandate as a quadratic loss, $L_t = w_u (u_t - 5)^2 + w_\pi (\pi_t - 2)^2$ (weights 1 and
    1 by default, adjustable 0 to 2). The game adds up the loss with the class's policy and
-   with no policy (the same economy and event, rate held at 3%, no fiscal change). Welfare
+   with no policy (the same economy and event, no fiscal change, and the real rate held at
+   neutral; see below). Welfare
    score $= 100\,(L_{\text{no policy}} - L_{\text{policy}})/L_{\text{no policy}}$: the share
    of the no-policy loss that policy avoided. When doing nothing loses almost nothing (under
    0.5 loss points) the game shows the change in loss points instead. Win: policy's total
@@ -61,13 +76,20 @@ curve gives a slope near 0.5.
 9. **Wages adjust.** SRAS shifts to close a share $\lambda$ of the output gap.
 
 **Autopilots (Settings).** Monetary: Mankiw's Taylor rule,
-$i = \pi + 1 + 0.5(\pi - 2) + 0.5\,g$, from last round's data, in 25 basis point steps.
+$i^* = \pi + 1 + 0.5(\pi - 2) + 0.5\,g$, from last round's data; each round the rate moves
+half way from where it is to $i^*$ (interest-rate smoothing, as in estimated Taylor rules),
+in 25 basis point steps. Without smoothing the rule swung by the full 2 points every round
+in the New Keynesian and neoclassical economies.
 Fiscal: a balanced budget, spending follows tax revenue (25% of GDP), so it is cut in a
 slump and raised in a boom.
 
-**The no-policy path** runs the same economy and event with the nominal rate held at 3% and
-no fiscal change. With adaptive expectations that path can drift (a passive central bank
-lets inflation run): that is the point of showing it.
+**The no-policy path** runs the same economy and event with no fiscal change and a central
+bank that holds the real rate at its neutral 1%: each round it sets the nominal rate to
+expected inflation plus 1% (at 0% or above), moving in the players' own 25 basis point steps
+and phase-in, so no policy is a path the class could have played. The same rule runs in the
+rounds after the game that every score counts. Holding the nominal rate fixed is not no
+policy: with expectations that follow inflation, it lets the real rate fall as inflation
+rises, so a boom or a slump feeds on itself.
 
 ## Schools of thought (presets)
 
@@ -76,12 +98,14 @@ lets inflation run): that is the point of showing it.
 | Keynesian | 0.10 | 2 | 0% | 0.3 | 75 | off |
 | Neoclassical | 0.7 | 1 | 100% | 0.9 | 50 | off |
 | New Keynesian | 0.3 | 1.5 | 50% | 0.8 | 100 | on |
-| Monetarist | 0.4 | 1 | 30% | 0 | 50 | off |
+| Monetarist | 0.4 | 1 | 30% | 0.1 | 50 | off |
 | Real world | 0.10, then 0.5 from round 5 | 2 | 0% | 0.5 | 50 | off |
 
 ## How the presets play (12 rounds, no policy / Taylor rule, checked 2026-10-28)
 
-Stars are out of 24.
+**Out of date.** This table predates the changes of 2026-10-28 (the Taylor rule's smoothing,
+Monetarist credibility 0.1, no policy as the neutral real rate, fading events) and is to be
+redone. Stars are out of 24.
 
 | Event | Keynesian | Neoclassical | New Keynesian | Monetarist | Real world |
 |---|---|---|---|---|---|

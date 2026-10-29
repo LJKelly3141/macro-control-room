@@ -175,6 +175,7 @@
     lambdaLate: { min: 0, max: 1.5, step: 0.05 },
     switchRound: { min: 1, max: 20, step: 1 },
     rounds: { min: 4, max: 20, step: 1 },
+    persistence: { min: 0.5, max: 1, step: 0.05 },
     spending: { min: -4, max: 4, step: 1 },
     taxes: { min: -4, max: 4, step: 1 },
     rate: { min: -2, max: 2, step: 0.25 },  // 25 basis points a step
@@ -206,6 +207,9 @@
     }
   };
   var EVENTS = ['demand_drop', 'boom', 'oil', 'productivity'];
+  // How much of a demand or cost shock is still in place a round later
+  // (game option persistence; 1 = permanent).
+  var PERSISTENCE = 0.9;
 
   // The scripted game: round number to shock key.
   var SCRIPT = { 2: 'demand_drop', 5: 'oil', 7: 'boom', 9: 'productivity' };
@@ -286,6 +290,8 @@
     this.iEff = START_RATE;   // the nominal rate that has reached the economy (after lags)
     this.adMon = 0;           // the part of AD set by the real interest rate
     this.scoring = scoringOf(settings._scoring);
+    this.shockAd = 0;         // the part of AD and SRAS shifts from events still in place (fades with persistence)
+    this.shockSras = 0;
     this.atLimit = false;     // set when AD or SRAS is pushed past its limit; read and cleared by record()
     var e = equilibrium(this.ad, this.sras, this.lras);
     this.history = [this.record(0, e, null, 'none', {}, {}, 0)];
@@ -417,9 +423,19 @@
     this.setAd(this.ad + (adMonNow - this.adMon));
     this.adMon = adMonNow;
 
+    // Events fade: each round the part of a demand or cost shock still in
+    // place shrinks to `persistence` times what it was (1 = it never fades).
+    // A gain in potential GDP is permanent and does not fade.
+    var rho = s._persistence != null ? s._persistence : 1;
+    if (rho < 1) {
+      var dAd = (1 - rho) * this.shockAd, dSras = (1 - rho) * this.shockSras;
+      this.setAd(this.ad - dAd); this.shockAd -= dAd;
+      this.setSras(this.sras - dSras); this.shockSras -= dSras;
+    }
     var shock = SHOCKS[shockKey] || SHOCKS.none;
     this.setAd(this.ad + shock.ad);
     this.setSras(this.sras + shock.sras);
+    this.shockAd += shock.ad; this.shockSras += shock.sras;
     if (shock.lras) this.raisePotential(shock.lras);
 
     var fiscal = (choice.spending || 0) * DEMAND_STEP * s.multiplier
@@ -508,6 +524,7 @@
     this.autopilot = autopilotOf(opts.autopilot);
     this.optimalOpts = opts.optimal || {};
     this.scoring = scoringOf(opts.scoring);
+    this.persistence = opts.persistence != null ? opts.persistence : PERSISTENCE;
     this.rate = START_RATE;
     this.round = 0;
     this.keys = Object.keys(opts.universes);
@@ -515,10 +532,11 @@
     for (var i = 0; i < this.keys.length; i++) {
       var us = clone(opts.universes[this.keys[i]]);
       us._scoring = opts.scoring;
+      us._persistence = this.persistence;
       this.universes[this.keys[i]] = new Universe(us);
     }
     this.baseline = opts.noBaseline ? null
-      : new Game({ rounds: this.rounds, shockMode: this.shockMode, event: this.event, scoring: opts.scoring, universes: opts.universes, noBaseline: true, autopilot: { monetary: 'neutral' } });
+      : new Game({ rounds: this.rounds, shockMode: this.shockMode, event: this.event, scoring: opts.scoring, persistence: this.persistence, universes: opts.universes, noBaseline: true, autopilot: { monetary: 'neutral' } });
   }
 
   // A full copy of the game at its current round (the no-policy twin too), so
@@ -532,6 +550,7 @@
     c.autopilot = { monetary: this.autopilot.monetary, fiscal: this.autopilot.fiscal };
     c.optimalOpts = this.optimalOpts;
     c.scoring = clone(this.scoring);
+    c.persistence = this.persistence;
     c.rate = this.rate;
     c.round = this.round;
     c.keys = this.keys.slice();
@@ -655,7 +674,7 @@
     BASE_POTENTIAL: BASE_POTENTIAL, START_AD: START_AD,
     NATURAL_RATE: NATURAL_RATE, INFLATION_TARGET: INFLATION_TARGET, TREND_INFLATION: TREND_INFLATION,
     autopilotOf: autopilotOf, setOptimalRule: setOptimalRule,
-    R_STAR: R_STAR, BETA: BETA, scoringOf: scoringOf, welfareOf: welfareOf, WELFARE_MIN_LOSS: WELFARE_MIN_LOSS, credibilityOf: credibilityOf,
+    R_STAR: R_STAR, BETA: BETA, PERSISTENCE: PERSISTENCE, scoringOf: scoringOf, welfareOf: welfareOf, WELFARE_MIN_LOSS: WELFARE_MIN_LOSS, credibilityOf: credibilityOf,
     TAX_SHARE: TAX_SHARE, RATE_EFFECT: RATE_EFFECT, START_RATE: START_RATE, RATE_MAX: RATE_MAX,
     GROWTH_AD_SHARE: GROWTH_AD_SHARE, TAYLOR: TAYLOR, TAX_RATE: TAX_RATE,
     direction: function (before, after, tol) { var d = after - before; tol = tol == null ? 0.2 : tol; return d > tol ? 'up' : d < -tol ? 'down' : 'same'; }, ZONE: ZONE, EVENTS: EVENTS, inZone: inZone,

@@ -18,7 +18,7 @@
     stars: 'Welfare compared with no policy: the share of the economy\'s losses your policy avoided. Each round\'s loss is the squared distance of unemployment from 5% plus the squared distance of inflation from 2%, so big misses count much more than small ones. +40% means policy cut the losses by 40%; below 0 means doing nothing would have been better.',
     greenZone: 'The green zone is a guide to the dual mandate: unemployment close to the natural rate of 5% and inflation close to the 2% target. Congress gave the Federal Reserve the goals of maximum employment and stable prices; since 2012 the Fed has defined stable prices as 2% inflation. The score itself is the welfare loss, which grows the farther the economy is from 5% and 2%.',
     round: 'Each round is one period of time. The event hits in round 1. After that your policies arrive, and wages and prices adjust.',
-    event: 'The event that hit the economy at the start of the game. Both universes get exactly the same event.',
+    event: 'The event that hit the economy at the start of the game. Both universes get exactly the same event. A demand or oil shock fades over the following rounds (see Settings); a productivity gain is permanent.',
     play: 'Apply both teams\' choices and move the economy forward one round. Policy arrives after its lag, so it may not show up right away.',
     replay: 'Start over with the same event and the same settings, so you can try to do better on exactly the same situation. Your current game ends.',
     newGame: 'Start over with the same settings. A new event is drawn if the event is set to Random.',
@@ -50,7 +50,7 @@
     rate: 'The interest rate. Cutting it makes borrowing cheaper, so businesses invest and households buy more, and AD shifts right. Raising it shifts AD left. The rate moves in steps of 25 basis points (0.25 percentage point); each step moves AD by 75. The rate cannot go below 0%. Holding the rate is itself a choice: if expected inflation rises and the rate stays put, the real rate falls and AD shifts right.',
     rateLevel: 'The interest rate after this round\'s change. It started at 3%.',
     supply: 'Supply-side investment in education and technology. It costs stars nothing but takes 3 rounds to raise potential GDP.',
-    lagNote: 'When this round\'s choices take effect in each universe. Policy takes time to pass and to change spending.',
+    lagNote: 'When this round\'s choices take effect in each universe. Each round is one decision. A spending or tax change still has to pass Congress (the inside lag), so it starts next round. A rate change is decided at once, but borrowing and spending respond slowly (the outside lag), so it starts this round and builds over two. Either way, half of a change arrives in its first round and half in the next.',
     shockPick: 'Pick the shock that hits this round. Only shown when Settings has shocks set to "I choose each round".',
 
     // Gauges and measures
@@ -121,6 +121,7 @@
 
     // Settings
     rounds: 'How many rounds the game lasts.',
+    persistence: 'Shocks do not last forever: confidence returns and oil prices come back down. Each round, what is left of a demand or cost shock shrinks to this share of what it was the round before. At 90%, half of it is gone after about 7 rounds, so policy that fought the shock has to be wound back as it fades. 100% means the shock never fades. A gain in productivity is permanent either way.',
     eventSetting: 'The event that hits in round 1. Random picks one when the game starts.',
     shockMode: 'One event: a single event at the start that the teams respond to. Several shocks: a fixed series of shocks during the game. I choose each round: you pick the shock every round.',
     supplyLever: 'Adds a supply-side investment lever to the game.',

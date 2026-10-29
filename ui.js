@@ -375,6 +375,7 @@
     renderMissionText();
     game = E.createGame({
       rounds: cfg.rounds, shockMode: cfg.shockMode || 'event', event: event,
+      persistence: cfg.persistence,
       autopilot: cfg.autopilot || { monetary: false, fiscal: false },
       optimal: optimalOpts(cfg),
       scoring: cfg.scoring,

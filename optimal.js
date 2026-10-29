@@ -40,8 +40,9 @@
   // ---- State: the economy at the start of a round, as deviations ------------
   // [ad, sras, lras, expected extra inflation, rate in effect, rate set,
   //  AD part set by the real rate, last round's unscaled price level,
+  //  the parts of the event's AD and SRAS shifts still in place (they fade),
   //  fiscal pipeline by rounds ahead (B slots), monetary pipeline (B slots)]
-  var NS = 8;
+  var NS = 10;
   function stateSize(B) { return NS + 2 * B; }
 
   function extract(u, nextRound, B) {
@@ -49,7 +50,8 @@
     var x = [
       u.ad - E.START_AD, u.sras, u.lras, u.expectedExtra || 0,
       u.iEff - E.START_RATE, u.rate - E.START_RATE, u.adMon,
-      last.p / (last.nom || 1) - 104
+      last.p / (last.nom || 1) - 104,
+      u.shockAd || 0, u.shockSras || 0
     ];
     for (var j = 0; j < 2 * B; j++) x.push(0);
     u.pendingDemand.forEach(function (d) {
@@ -65,6 +67,7 @@
     u.ad = E.START_AD + x[0]; u.sras = x[1]; u.lras = x[2]; u.expectedExtra = x[3];
     u.iEff = E.START_RATE + x[4]; u.rate = E.START_RATE + x[5]; u.adMon = x[6];
     u.nom = 1; u.adNom = 0; u.srasNom = 0;
+    u.shockAd = x[8]; u.shockSras = x[9];
     u.history = [{ round: round - 1, p: 104 + x[7], nom: 1, y: E.BASE_POTENTIAL }];
     u.pendingDemand = []; u.pendingSupply = [];
     for (var j = 0; j < B; j++) {
@@ -277,8 +280,10 @@
   function tuneKey(settings, scoring, o) {
     var sc = E.scoringOf(scoring);
     return JSON.stringify([MODEL_KEYS.map(function (k) { return settings[k] == null ? null : settings[k]; }),
-      sc.wU, sc.wPi, o.discount, o.tail, COST_GRID]);
+      persistenceOf(settings), sc.wU, sc.wPi, o.discount, o.tail, COST_GRID]);
   }
+  // How fast events fade in the game this economy is in (set on its settings by the game).
+  function persistenceOf(settings) { return settings._persistence != null ? settings._persistence : E.PERSISTENCE; }
   // Precomputed results for the presets (tuned_costs.js, written by
   // scripts/tune_costs.js), so the usual games need no tuning at the start;
   // anything else is tuned in the browser (0.1 to 0.3 s on a laptop).
@@ -292,7 +297,7 @@
     if (!fresh && tuneCache[key]) return tuneCache[key];
     if (!fresh && TUNED && TUNED[key]) return (tuneCache[key] = TUNED[key]);
     var games = E.EVENTS.map(function (ev) {
-      var g = E.createGame({ rounds: TUNE_ROUNDS, shockMode: 'event', event: ev, scoring: scoring, noBaseline: true, universes: { a: settings } });
+      var g = E.createGame({ rounds: TUNE_ROUNDS, shockMode: 'event', event: ev, scoring: scoring, persistence: persistenceOf(settings), noBaseline: true, universes: { a: settings } });
       g.step({});
       return { g: g, none: Math.max(1, nonePlan(g, o).loss) };
     });
@@ -387,7 +392,7 @@
     opts = Object.assign({}, DEFAULTS, opts || {});
     var X = [], Y = [];
     E.EVENTS.forEach(function (ev) {
-      var g = E.createGame({ rounds: 12, shockMode: 'event', event: ev, scoring: scoring, noBaseline: true, universes: { a: settings } });
+      var g = E.createGame({ rounds: 12, shockMode: 'event', event: ev, scoring: scoring, persistence: persistenceOf(settings), noBaseline: true, universes: { a: settings } });
       g.step({});
       var p = lqPlan(g, opts), h = p.history;
       for (var t = 2; t <= 12; t++) {

@@ -4,7 +4,7 @@
  * The config is mirrored into the page's query string so a link reopens it.
  *
  * get() returns
- *   { rounds, shockMode: 'event'|'scripted'|'custom', event: 'random' | EVENTS key,
+ *   { rounds, shockMode: 'event'|'scripted'|'custom', event: 'random' | EVENTS key, persistence,
  *     supplyLever, universeCount: 1 | 2,
  *     autopilot: {monetary: false | 'taylor' | 'optimal', fiscal: false | 'balanced' | 'optimal'},
  *     predictions, showRealRate, scoring: {on, uBand, piBand, wU, wPi},
@@ -15,7 +15,7 @@
  * universes.b is always present; with universeCount 1 its block is hidden and the
  * caller shows only universe A.
  *
- * URL keys: r (rounds), m (e/s/c), ev (random or event key), sl (1/0), u (1/2 universes),
+ * URL keys: r (rounds), m (e/s/c), ev (random or event key), ep (event persistence), sl (1/0), u (1/2 universes),
  * apm / apf (monetary / fiscal autopilot: 0 off, 1 Taylor rule / balanced budget, 2 optimal rule),
  * pr (predictions, 1/0), rr (real rate, 1/0),
  * sc (scoring 1/0), zu / zi (zone half-widths), wu / wp (star weights),
@@ -185,6 +185,8 @@
   function pts(v) { return v + (v === 1 ? ' point' : ' points'); }
   function pct(v) { return Number(v.toFixed(2)) + '%'; }
 
+  function halfLife(v) { var n = Math.log(0.5) / Math.log(v); return (n < 9.95 ? n.toFixed(1) : Math.round(n)) + ' rounds'; }
+
   // dispKey names what the value means (uBand, wU, ...); for universe fields it is the field key.
   function display(dispKey, v) {
     if (v === null || v === undefined) return '';
@@ -202,6 +204,7 @@
       case 'wU': case 'wPi': return v === 0 ? '0 (ignored)' : (v === 1 ? '1 (equal)' : v + ' (double)');
       case 'discount': case 'costFiscal': case 'costRate': return v.toFixed(2);
       case 'tail': return v + (v === 1 ? ' round' : ' rounds');
+      case 'persistence': return v >= 1 ? '100% (never fades)' : Math.round(v * 100) + '% a round (half gone after ' + halfLife(v) + ')';
       default: return String(v);
     }
   }
@@ -250,6 +253,7 @@
       rounds: DEFAULT_ROUNDS,
       shockMode: 'event',
       event: 'random',
+      persistence: engine.PERSISTENCE,
       supplyLever: false,
       universeCount: 1,
       autopilot: { monetary: false, fiscal: false },
@@ -304,7 +308,7 @@
     var sc = state.scoring;
     var op = state.optimal;
     var out = {
-      rounds: state.rounds, shockMode: state.shockMode, event: state.event,
+      rounds: state.rounds, shockMode: state.shockMode, event: state.event, persistence: state.persistence,
       supplyLever: state.supplyLever,
       universeCount: state.universeCount,
       autopilot: {
@@ -351,6 +355,8 @@
     else if (MODE_CODE[m]) state.shockMode = m;
     var ev = validEvent(params.get('ev'));
     if (ev) state.event = ev;
+    var ep = clean('persistence', params.get('ep'));
+    if (ep !== null) state.persistence = ep;
     var sl = flag(params.get('sl'));
     if (sl !== null) state.supplyLever = sl;
     var uc = params.get('u');
@@ -423,7 +429,7 @@
     var params;
     try { params = new URLSearchParams(root.location.search); } catch (e) { params = new URLSearchParams(); }
     // Drop our own keys (and the old ones), keep anything else on the page address.
-    var ours = ['r', 'm', 'ev', 'sl', 'u', 'apm', 'apf', 'pr', 'rr', 'sc', 'os', 'oh', 'otc'];
+    var ours = ['r', 'm', 'ev', 'ep', 'sl', 'u', 'apm', 'apf', 'pr', 'rr', 'sc', 'os', 'oh', 'otc'];
     OPT_KEYS.forEach(function (k) { ours.push(OPT_URL[k]); });
     Object.keys(SCORE_FIELDS).forEach(function (k) { ours.push(SCORE_FIELDS[k][0]); });
     SLOTS.forEach(function (s) {
@@ -436,6 +442,7 @@
     params.set('r', String(cfg.rounds));
     params.set('m', MODE_CODE[cfg.shockMode]);
     params.set('ev', cfg.event);
+    params.set('ep', String(cfg.persistence));
     params.set('sl', cfg.supplyLever ? '1' : '0');
     params.set('u', String(cfg.universeCount));
     params.set('apm', apCode(cfg.autopilot.monetary));
@@ -706,6 +713,9 @@
     r.event = sel;
     r.eventWrap = evWrap;
 
+    var fade = slider('persistence', 'How much of a shock is left each round', 'persistence', col, function (v) { state.persistence = v; });
+    r.persistence = fade;
+
     var supply = checkbox('Add a supply-side investment lever', 'supplyLever', col);
     supply.input.addEventListener('change', function () {
       state.supplyLever = supply.input.checked;
@@ -869,6 +879,7 @@
     g.rounds.setAttribute('aria-valuetext', state.rounds + ' rounds');
     MODES.forEach(function (pair) { g.shock[pair[0]].checked = state.shockMode === pair[0]; });
     g.event.value = state.event;
+    setSlider(g.persistence, 'persistence', state.persistence);
     g.eventWrap.hidden = state.shockMode !== 'event';
     g.supply.checked = state.supplyLever;
     g.realRate.checked = state.showRealRate;

@@ -17,7 +17,8 @@ Built for ECON 202, Principles of Macroeconomics, at the University of Wisconsin
   Taylor rule or a balanced budget, or the optimal rule derived from the welfare loss.
 - **The model.** A static price-level AD/AS model with the same curves as the course
   slides, sticky wages that close part of the output gap each round, inflation
-  expectations set by central bank credibility, and a real interest rate channel.
+  expectations set by central bank credibility, a real interest rate channel, and events
+  that fade over the following rounds.
 - **Scoring.** The Fed's dual mandate as a welfare loss: squared distance of unemployment
   from 5% plus squared distance of inflation from 2%. The class wins by beating no policy
   (no change in spending or taxes, and a central bank that holds the real interest rate at
