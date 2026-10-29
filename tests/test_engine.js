@@ -412,3 +412,21 @@ test('a path pushed past a curve limit is flagged', () => {
   while (!g.isOver()) g.step({});
   assert.ok(g.universes.a.history.some(r => r.atLimit), 'adaptive expectations with the rate held should run into a limit');
 });
+
+test('budget deficit: starts balanced, opens in a slump with no policy, and grows with a stimulus once it takes effect', () => {
+  const g = E.createGame({ rounds: 6, shockMode: 'event', event: 'demand_drop', universes: { k: E.PRESETS.keynesian } });
+  g.step({}); g.step({ spending: 2 });
+  while (!g.isOver()) g.step({});
+  const h = g.universes.k.history, np = g.noPolicy('k');
+  assert.ok(Math.abs(h[0].deficitPct) < 1e-9, 'balanced at the start');
+  assert.ok(np[1].deficitPct > 0.5, `revenue falls in the slump: deficit ${np[1].deficitPct}`);
+  // Spending +2 (100 of GDP) is half in effect in round 3 and fully from round 4.
+  assert.strictEqual(h[2].govSpending, E.G0);
+  assert.strictEqual(h[3].govSpending, E.G0 + 50);
+  assert.strictEqual(h[4].govSpending, E.G0 + 100);
+  for (const r of h) {
+    assert.ok(Math.abs(r.taxRevenue - E.TAX_RATE * r.y) < 1e-9);
+    assert.ok(Math.abs(r.deficitPct - 100 * (r.govSpending - r.taxRevenue) / r.y) < 1e-9);
+  }
+  assert.ok(h[4].deficitPct > np[4].deficitPct, 'the stimulus adds to the deficit');
+});

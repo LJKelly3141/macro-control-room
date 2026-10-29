@@ -288,6 +288,7 @@ button { font: inherit; }
 @media (min-width: 1001px) {
   .universes.single .universe { display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 0 var(--gap); align-items: start; }
   .universes.single .universe-name { grid-column: 1 / -1; }
+  .universes.single .universe-mini { grid-column: 1 / -1; }
 }
 .universe[hidden] { display: none !important; }
 

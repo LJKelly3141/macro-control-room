@@ -234,13 +234,17 @@
   function uTip(k) { return 'universe' + String(k).toUpperCase(); }
 
   // Slot key ('a'|'b') of the u-th universe; colors come from the slot.
-  function slotOf(u) { return u === 0 ? 'a' : 'b'; }
+  // slotShift is 1 while a chart for universe B alone is drawn (renderMini),
+  // so its one series keeps B's color and marker shape.
+  var slotShift = 0;
+  function slotIdx(u) { return (u + slotShift) % 2; }
+  function slotOf(u) { return slotIdx(u) === 0 ? 'a' : 'b'; }
 
   // Marker shape per universe slot so color is not the only signal: A a
   // circle, B a square. cls picks the paint (pu-mk, pu-mk is-latest, pu-mk-solid).
   function marker(idx, x, y, r, cls, extra) {
     extra = extra || '';
-    var a = ' class="' + cls + (idx % 2 === 1 ? ' pu-mk-b' : '') + '" data-slot="' + slotOf(idx % 2) + '"' + extra;
+    var a = ' class="' + cls + (idx % 2 === 1 ? ' pu-mk-b' : '') + '" data-slot="' + (idx % 2 === 1 ? 'b' : 'a') + '"' + extra;
     if (idx % 2 === 1) {
       var s = r * 1.8;
       return '<rect x="' + (x - s / 2).toFixed(1) + '" y="' + (y - s / 2).toFixed(1) + '" width="' + s.toFixed(1) +
@@ -254,7 +258,7 @@
   // round is filled.
   function pointMarker(u, x, y, latest) {
     var cls = 'pu-mk' + (latest ? ' is-latest' : '');
-    if (u === 0) return marker(0, x, y, latest ? 6 : 4, cls, ' stroke-width="2"');
+    if (slotIdx(u) === 0) return marker(0, x, y, latest ? 6 : 4, cls, ' stroke-width="2"');
     return marker(1, x, y, latest ? 4.2 : 2.6, cls, ' stroke-width="' + (latest ? 1.2 : 1.8) + '"');
   }
 
@@ -283,7 +287,7 @@
   var TAG_H = 17, TAG_FONT = 13;
   function tagWidth(letters) { return Math.max(TAG_H, letters.length * 9 + 6); }
   function tag(u, x, y, letters) {
-    var w = tagWidth(letters), rx = u === 0 ? TAG_H / 2 : 2;
+    var w = tagWidth(letters), rx = slotIdx(u) === 0 ? TAG_H / 2 : 2;
     return '<g data-slot="' + slotOf(u) + '"><rect class="pu-tag-box" x="' + (x - w / 2).toFixed(1) + '" y="' + (y - TAG_H / 2).toFixed(1) +
       '" width="' + w.toFixed(1) + '" height="' + TAG_H + '" rx="' + rx.toFixed(1) + '"/>' +
       '<text class="pu-tag-text" x="' + x.toFixed(1) + '" y="' + (y + TAG_FONT * 0.36).toFixed(1) + '" text-anchor="middle" font-size="' +
@@ -535,7 +539,7 @@
       k = keys[u]; h = game.universes[k].history;
       var sy = axisY + 22 + u * stripRow + stripRow / 2;
       // Row key in the left margin: the universe's marker shape.
-      parts.push('<g data-tip="' + uTip(k) + '">' + marker(u, m.left - 12, sy, 3.5, 'pu-mk-solid') + '</g>');
+      parts.push('<g data-tip="' + uTip(k) + '">' + marker(slotIdx(u), m.left - 12, sy, 3.5, 'pu-mk-solid') + '</g>');
       var got = [];
       for (i = 1; i < h.length; i++) {
         var f = h[i].fiscalArrived, mo = h[i].monetaryArrived;
@@ -890,6 +894,60 @@
     if (registered.indexOf(el) < 0) registered.push(el);
   }
 
+  // ---------- dashboard strip: one universe's interest rates and budget ----------
+  // PU.charts.renderMini(el, game, k, opts): two small charts for universe k,
+  // the class's path only: the real interest rate (solid, markers) with the
+  // nominal rate in effect (dash-dot), and the budget deficit G - T as a
+  // percent of real GDP. opts: { names }.
+  function renderMini(el, game, k, opts) {
+    if (!el || !game || !game.universes[k]) return;
+    opts = opts || {};
+    var view = Object.create(game);
+    view.keys = [k];
+    view.noPolicy = function () { return null; };
+    var cfg = setup(view, { names: opts.names });
+    cfg.optimal = null;
+    var W = el.clientWidth || 0;
+    var two = W >= 620;
+    var width = Math.round(Math.max(280, Math.min(two ? (W - NS_GAP) / 2 : W, 520)));
+    var rStar = (root.PU.engine && root.PU.engine.R_STAR != null) ? root.PU.engine.R_STAR : 1;
+    var rr = expandRange({ min: -2, max: 6 }, 2, valuesOf(view, ['realRate', 'nominalRate'], false));
+    var rd = expandRange({ min: -2, max: 4 }, 2, valuesOf(view, ['deficitPct'], false));
+    var rates = {
+      title: 'Interest rates', field: 'realRate', range: rr, ticks: rr.ticks, fmt: pctFmt,
+      lineTip: 'realRate', noNoPolicy: true,
+      alt: [{ field: 'nominalRate', cls: 'pu-line pu-rate-nominal', tip: 'nominalRate' }],
+      ref: { value: rStar, label: 'Neutral real rate ' + rStar + '%', tip: 'realRate' },
+      ariaNote: 'Solid line with markers: real interest rate. Dash-dot line: nominal interest rate in effect.',
+      tipFmt: function (r) { return 'real rate ' + f1(r.realRate) + '%, nominal rate ' + (r.nominalRate || 0).toFixed(2) + '%'; }
+    };
+    var deficit = {
+      title: 'Budget deficit', field: 'deficitPct', range: rd, ticks: rd.ticks, fmt: pctFmt,
+      lineTip: 'deficit', noNoPolicy: true,
+      ref: { value: 0, label: 'Balanced budget', tip: 'deficit' },
+      ariaNote: 'Government spending minus tax revenue, percent of real GDP; above 0 is a deficit, below 0 a surplus.',
+      tipFmt: function (r) { return 'deficit ' + f1(r.deficitPct) + '% of GDP'; }
+    };
+    slotShift = k === 'b' ? 1 : 0;
+    var html;
+    try {
+      var keyHtml = '<ul class="pu-legend pu-legend-mini" aria-label="Chart key">' +
+        '<li data-tip="realRate" tabindex="0"><svg class="pu-key pu-key-wide" viewBox="0 0 40 15" width="40" height="15" aria-hidden="true">' +
+        '<line x1="1" x2="39" y1="7.5" y2="7.5" class="pu-key-ink"/><circle cx="20" cy="7.5" r="4" class="pu-key-ink-mk"/></svg>Real rate (solid)</li>' +
+        '<li data-tip="nominalRate" tabindex="0"><svg class="pu-key pu-key-wide" viewBox="0 0 40 15" width="40" height="15" aria-hidden="true">' +
+        '<line x1="1" x2="39" y1="7.5" y2="7.5" class="pu-key-ink pu-rate-nominal"/></svg>Nominal rate (dash-dot)</li></ul>';
+      html = '<div class="' + WRAP_CLASS + ' pu-mini">' + keyHtml + '<div class="pu-chart-grid pu-mini-grid' + (two ? '' : ' is-one') + '">' +
+        figure('', 'realRate', 'Interest rates', seriesChart(view, cfg, rates, width)) +
+        figure('', 'deficit', 'Budget deficit (G \u2212 T, % of GDP)', seriesChart(view, cfg, deficit, width)) + '</div></div>';
+    } finally {
+      slotShift = 0;
+    }
+    el.innerHTML = html;
+    el.__puMini = { game: game, k: k, opts: opts, W: W };
+    if (miniRegistered.indexOf(el) < 0) miniRegistered.push(el);
+  }
+  var miniRegistered = [];
+
   var resizeTimer = null;
   function onResize() {
     if (resizeTimer) clearTimeout(resizeTimer);
@@ -900,9 +958,13 @@
         var wrap = el.querySelector('.' + WRAP_CLASS);
         if (wrap && cellWidth(wrap) !== st.width) render(el, st.game, st.opts);
       }
+      for (i = 0; i < miniRegistered.length; i++) {
+        var me = miniRegistered[i], ms = me.__puMini;
+        if (ms && me.isConnected && me.clientWidth && me.clientWidth !== ms.W) renderMini(me, ms.game, ms.k, ms.opts);
+      }
     }, 150);
   }
   if (root.addEventListener) root.addEventListener('resize', onResize);
 
-  root.PU.charts = { render: render, _niceStep: niceStep };
+  root.PU.charts = { render: render, renderMini: renderMini, _niceStep: niceStep };
 })(typeof window !== 'undefined' ? window : globalThis);

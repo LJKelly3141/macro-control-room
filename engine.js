@@ -71,6 +71,13 @@
   // Balanced budget: tax revenue is this share of GDP, and spending must move
   // with revenue, so a fall in GDP forces an equal fall in spending.
   var TAX_RATE = 0.25;
+  // The budget: tax revenue is TAX_RATE of real GDP plus the tax steps taken;
+  // government spending starts at the revenue of the starting economy (a
+  // balanced budget) plus the spending steps taken. A spending or tax step is
+  // DEMAND_STEP of real GDP, counted when it takes effect. The deficit, G - T,
+  // is reported as a percent of real GDP. Revenue falls in a slump, so the
+  // deficit opens with no change in policy (an automatic stabilizer).
+  var G0 = TAX_RATE * BASE_POTENTIAL;
   // The green zone: the mission is to get both into it and keep them there.
   var ZONE = { unemployment: [4.5, 5.5], inflation: [1, 3] };
   // Limits on how far AD and the wage part of SRAS can move from the start, so
@@ -290,6 +297,8 @@
     this.iEff = START_RATE;   // the nominal rate that has reached the economy (after lags)
     this.adMon = 0;           // the part of AD set by the real interest rate
     this.scoring = scoringOf(settings._scoring);
+    this.govSteps = 0;        // spending and tax changes that have taken effect, real GDP units
+    this.taxSteps = 0;
     this.shockAd = 0;         // the part of AD and SRAS shifts from events still in place (fades with persistence)
     this.shockSras = 0;
     this.atLimit = false;     // set when AD or SRAS is pushed past its limit; read and cleared by record()
@@ -362,6 +371,9 @@
       stars: sc.on ? (zone.unemployment ? sc.wU : 0) + (zone.inflation ? sc.wPi : 0) : 0,
       // The round's welfare loss: the dual mandate as a quadratic loss.
       loss: round === 0 ? 0 : sc.wU * Math.pow(u - NATURAL_RATE, 2) + sc.wPi * Math.pow(inflation - INFLATION_TARGET, 2),
+      govSpending: G0 + (this.govSteps || 0),
+      taxRevenue: TAX_RATE * e.y + (this.taxSteps || 0),
+      deficitPct: 100 * (G0 + (this.govSteps || 0) - TAX_RATE * e.y - (this.taxSteps || 0)) / e.y,
       expectedInflation: INFLATION_TARGET + (this.expectedExtra || 0),
       nominalRate: this.iEff, realRate: this.iEff - (INFLATION_TARGET + (this.expectedExtra || 0)),
       points: points, score: this.score,
@@ -438,6 +450,9 @@
     this.shockAd += shock.ad; this.shockSras += shock.sras;
     if (shock.lras) this.raisePotential(shock.lras);
 
+    // The budget changes behind this round's fiscal choices, in real GDP units.
+    var dG = (choice.spending || 0) * DEMAND_STEP + (choice.autoSpending || 0);
+    var dT = (choice.taxes || 0) * DEMAND_STEP;
     var fiscal = (choice.spending || 0) * DEMAND_STEP * s.multiplier
       - (choice.taxes || 0) * DEMAND_STEP * s.multiplier * TAX_SHARE
       + (choice.autoSpending || 0) * s.multiplier;
@@ -448,8 +463,8 @@
     // effect, and so in the real rate.
     var self = this;
     if (fiscal) {
-      self.pendingDemand.push({ arrives: round + fLag, shift: fiscal / 2, kind: 'fiscal' });
-      self.pendingDemand.push({ arrives: round + fLag + 1, shift: fiscal / 2, kind: 'fiscal' });
+      self.pendingDemand.push({ arrives: round + fLag, shift: fiscal / 2, dG: dG / 2, dT: dT / 2, kind: 'fiscal' });
+      self.pendingDemand.push({ arrives: round + fLag + 1, shift: fiscal / 2, dG: dG / 2, dT: dT / 2, kind: 'fiscal' });
     }
     if (dRate) {
       self.pendingDemand.push({ arrives: round + mLag, dRate: dRate / 2, shift: -beta * dRate / 2, kind: 'monetary' });
@@ -465,6 +480,8 @@
       if (d.arrives <= round) {
         this.setAd(this.ad + d.shift);
         if (d.dRate) { this.iEff += d.dRate; this.adMon += d.shift; }
+        if (d.dG) this.govSteps += d.dG;
+        if (d.dT) this.taxSteps += d.dT;
         arrived[d.kind || 'fiscal'] = true;
       } else keep.push(d);
     }
@@ -676,7 +693,7 @@
     autopilotOf: autopilotOf, setOptimalRule: setOptimalRule,
     R_STAR: R_STAR, BETA: BETA, PERSISTENCE: PERSISTENCE, scoringOf: scoringOf, welfareOf: welfareOf, WELFARE_MIN_LOSS: WELFARE_MIN_LOSS, credibilityOf: credibilityOf,
     TAX_SHARE: TAX_SHARE, RATE_EFFECT: RATE_EFFECT, START_RATE: START_RATE, RATE_MAX: RATE_MAX,
-    GROWTH_AD_SHARE: GROWTH_AD_SHARE, TAYLOR: TAYLOR, TAX_RATE: TAX_RATE,
+    GROWTH_AD_SHARE: GROWTH_AD_SHARE, TAYLOR: TAYLOR, TAX_RATE: TAX_RATE, G0: G0,
     direction: function (before, after, tol) { var d = after - before; tol = tol == null ? 0.2 : tol; return d > tol ? 'up' : d < -tol ? 'down' : 'same'; }, ZONE: ZONE, EVENTS: EVENTS, inZone: inZone,
     OKUN: OKUN, SUPPLY_DELAY: SUPPLY_DELAY, SUPPLY_GAIN: SUPPLY_GAIN, DEMAND_STEP: DEMAND_STEP,
     AD_MIN: AD_MIN, AD_MAX: AD_MAX, SRAS_MIN: SRAS_MIN, SRAS_MAX: SRAS_MAX,

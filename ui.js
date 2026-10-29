@@ -857,6 +857,7 @@
         PU.gauges.render($('gauges-' + s), rec, { name: n[s], color: c[s], slot: s, prev: h.length > 1 ? h[h.length - 2] : null, noPolicy: np,
           zone: scoring.zone, scoringOff: !scoring.on, optimal: opt });
         PU.adas.render($('adas-' + s), u, { name: n[s], color: c[s], slot: s, noPolicy: np, optimal: opt });
+        PU.charts.renderMini($('mini-' + s), game, s, { names: n });
       });
     } else if (active === 'time') {
       PU.charts.render($('charts'), game, viewOpts({ only: 'series' }));

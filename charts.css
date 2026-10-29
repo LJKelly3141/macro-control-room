@@ -16,6 +16,10 @@
 .pu-legend .pu-key { display: inline-block; flex: none; width: 34px; height: 14px; }
 .pu-legend .pu-key.pu-key-wide { width: 40px; height: 15px; }
 
+/* Dashboard strip under each universe: interest rates and the budget deficit. */
+.pu-mini { margin-top: 12px; }
+.pu-legend-mini { margin-bottom: 6px; }
+
 .pu-chart-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -173,3 +177,6 @@
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap;
 }
+
+/* After the grid rules, so one column wins where the strip is narrow. */
+.pu-mini-grid.is-one { grid-template-columns: minmax(0, 1fr); }
